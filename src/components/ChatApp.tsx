@@ -16,6 +16,7 @@ import { createChatSocket } from "@/lib/socket";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { ChatShell } from "@/components/ChatShell";
 import { LoginScreen } from "@/components/LoginScreen";
+import type { RootState } from "@/store/store";
 
 export function ChatApp() {
   const dispatch = useAppDispatch();
@@ -45,8 +46,20 @@ export function ChatApp() {
 
     socketRef.current?.disconnect();
     socketRef.current = createChatSocket(token, {
-      onMessage: (message) => dispatch(messageReceived(message)),
-      onConversation: (conversation) => dispatch(conversationUpdated(conversation)),
+      onMessage: (message) => {
+        dispatch(messageReceived(message));
+        // If conversation is not in list yet, refresh conversations
+        dispatch((_dispatch, getState) => {
+          const state = getState() as RootState;
+          if (!state.chat.conversations.some((c) => c._id === message.conversation)) {
+            _dispatch(fetchConversations());
+          }
+        });
+      },
+      onConversation: (conversation) => {
+        dispatch(conversationUpdated(conversation));
+        dispatch(fetchConversations());
+      },
       onStatus: (connected) => dispatch(setSocketConnected(connected)),
       onError: (message) => dispatch(setSocketError(message)),
     });
@@ -91,4 +104,3 @@ export function ChatApp() {
     />
   );
 }
-

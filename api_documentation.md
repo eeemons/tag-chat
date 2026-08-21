@@ -923,11 +923,42 @@ GET https://frontend-task-chatapp.onrender.com/socket.io/?EIO=4&transport=pollin
 0{"sid":"<socket-session-id>","upgrades":["websocket"],"pingInterval":25000,"pingTimeout":20000,"maxPayload":1000000}
 ```
 
+### Observed Live WebSocket Payloads
+
+#### 1. `message:new` Payload
+Received whenever a new message is sent in direct or group conversations:
+```json
+{
+  "id": "6a883b2ce5d6aac975220340",
+  "conversation": "6a883b29e5d6aac975220331",
+  "sender": "6a883b25e5d6aac975220317",
+  "text": "Hello from User A!",
+  "createdAt": 1787312940427
+}
+```
+*Note*: The WebSocket message payload uses `id` (rather than `_id`) and `createdAt` as numeric epoch milliseconds. The frontend client normalizes `id` to `_id` and converts numeric `createdAt` to ISO string format.
+
+#### 2. `conversation:updated` Payload
+Received whenever a group is created, renamed, or members/admins change:
+```json
+{
+  "_id": "6a883b34e5d6aac97522037f",
+  "type": "group",
+  "name": "Engineering Leaders",
+  "createdBy": "6a883b25e5d6aac975220317",
+  "admins": ["6a883b25e5d6aac975220317"],
+  "participants": [
+    { "_id": "6a883b25e5d6aac975220317", "name": "Test User A", "phone": "+8801970877404" },
+    { "_id": "6a883b26e5d6aac97522031d", "name": "Test User B", "phone": "+8801997545359" }
+  ]
+}
+```
+
 Implementation notes:
 
 - Install `socket.io-client` in the frontend app.
 - Pass the JWT in `auth.token`.
-- Verify exact `message:new` and `conversation:updated` payloads during app implementation.
+- Normalize `id` to `_id` and handle numeric epoch `createdAt` in `normalizeMessage`.
 - Dedupe REST-created messages against real-time messages by `_id`.
 
 Test cases:
@@ -939,4 +970,5 @@ Test cases:
 | Send socket message | `message:send` body | Sender and recipient receive/update message state. |
 | Receive new message | Other user sends message | `message:new` fires with message payload. |
 | Group update | Rename/add/remove/promote | `conversation:updated` fires with updated conversation payload. |
+
 
