@@ -12,6 +12,7 @@ import {
   Loader2,
   Users,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -32,6 +33,19 @@ interface GroupDetailsProps {
   onClose: () => void;
 }
 
+type ConfirmState =
+  | { type: "promote"; user: User }
+  | { type: "remove"; user: User }
+  | { type: "leave" }
+  | null;
+
+type ProcessingState =
+  | { type: "promote" | "remove"; userId: string }
+  | { type: "leave" }
+  | { type: "rename" }
+  | { type: "add" }
+  | null;
+
 export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
@@ -44,12 +58,14 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedToAdd, setSelectedToAdd] = useState<User[]>([]);
+  const [confirmModal, setConfirmModal] = useState<ConfirmState>(null);
+  const [processingState, setProcessingState] = useState<ProcessingState>(null);
   const isInitialMount = useRef(true);
 
   const isAdmin = Boolean(
     currentUser && conversation.admins?.includes(currentUser._id),
   );
-  const isActionLoading = actionStatus === "loading";
+  const isActionLoading = actionStatus === "loading" || processingState !== null;
 
   // Debounced search for adding new participants
   useEffect(() => {
@@ -75,62 +91,74 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
   }, [searchQuery, showAddMembers, dispatch]);
 
   const handleStartRename = () => {
+    if (isActionLoading) return;
     setNameInput(conversation.name);
     setIsEditingName(true);
   };
 
   const handleRename = async (e: FormEvent) => {
     e.preventDefault();
-    if (!nameInput.trim() || nameInput === conversation.name) {
+    if (!nameInput.trim() || nameInput === conversation.name || isActionLoading) {
       setIsEditingName(false);
       return;
     }
 
     try {
+      setProcessingState({ type: "rename" });
       await dispatch(
         renameGroup({ conversationId: conversation._id, name: nameInput.trim() }),
       ).unwrap();
       setIsEditingName(false);
     } catch {
       // Handled in state
+    } finally {
+      setProcessingState(null);
     }
   };
 
-  const handlePromote = async (userId: string) => {
-    if (!isAdmin || isActionLoading) return;
-    try {
-      await dispatch(
-        promoteAdmin({ conversationId: conversation._id, userId }),
-      ).unwrap();
-    } catch {
-      // Handled in state
-    }
-  };
+  const handleConfirmAction = async () => {
+    if (!confirmModal || isActionLoading) return;
 
-  const handleRemove = async (userId: string) => {
-    if (!isAdmin || isActionLoading) return;
-    try {
-      await dispatch(
-        removeParticipant({ conversationId: conversation._id, userId }),
-      ).unwrap();
-    } catch {
-      // Handled in state
-    }
-  };
-
-  const handleLeaveGroup = async () => {
-    if (!currentUser || isActionLoading) return;
-    try {
-      await dispatch(
-        removeParticipant({
-          conversationId: conversation._id,
-          userId: currentUser._id,
-        }),
-      ).unwrap();
-      dispatch(selectConversation(null));
-      onClose();
-    } catch {
-      // Handled in state
+    if (confirmModal.type === "promote") {
+      const userId = confirmModal.user._id;
+      setProcessingState({ type: "promote", userId });
+      setConfirmModal(null);
+      try {
+        await dispatch(promoteAdmin({ conversationId: conversation._id, userId })).unwrap();
+      } catch {
+        // Handled in state
+      } finally {
+        setProcessingState(null);
+      }
+    } else if (confirmModal.type === "remove") {
+      const userId = confirmModal.user._id;
+      setProcessingState({ type: "remove", userId });
+      setConfirmModal(null);
+      try {
+        await dispatch(removeParticipant({ conversationId: conversation._id, userId })).unwrap();
+      } catch {
+        // Handled in state
+      } finally {
+        setProcessingState(null);
+      }
+    } else if (confirmModal.type === "leave") {
+      if (!currentUser) return;
+      setProcessingState({ type: "leave" });
+      setConfirmModal(null);
+      try {
+        await dispatch(
+          removeParticipant({
+            conversationId: conversation._id,
+            userId: currentUser._id,
+          }),
+        ).unwrap();
+        dispatch(selectConversation(null));
+        onClose();
+      } catch {
+        // Handled in state
+      } finally {
+        setProcessingState(null);
+      }
     }
   };
 
@@ -144,6 +172,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
   const handleAddSelectedParticipants = async () => {
     if (selectedToAdd.length === 0 || isActionLoading) return;
     try {
+      setProcessingState({ type: "add" });
       await dispatch(
         addParticipants({
           conversationId: conversation._id,
@@ -153,6 +182,8 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
       handleCloseAddMembers();
     } catch {
       // Handled in state
+    } finally {
+      setProcessingState(null);
     }
   };
 
@@ -192,16 +223,23 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 autoFocus
+                disabled={isActionLoading}
                 className="w-full rounded-xl border border-black/15 bg-white px-3 py-1.5 text-sm font-semibold text-[#1c221e] outline-none focus:border-[#2f7d68]"
               />
               <button
                 type="submit"
-                className="grid h-8 w-8 place-items-center rounded-xl bg-[#1f5f51] text-white shadow-xs"
+                disabled={isActionLoading}
+                className="grid h-8 w-8 place-items-center rounded-xl bg-[#1f5f51] text-white shadow-xs disabled:opacity-50"
               >
-                <Check className="h-4 w-4" />
+                {processingState?.type === "rename" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
               </button>
               <button
                 type="button"
+                disabled={isActionLoading}
                 onClick={() => setIsEditingName(false)}
                 className="grid h-8 w-8 place-items-center rounded-xl bg-black/5 text-[#5e665e]"
               >
@@ -214,7 +252,8 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
               {isAdmin && (
                 <button
                   onClick={handleStartRename}
-                  className="grid h-6 w-6 place-items-center rounded-md text-[#788078] hover:bg-black/5 hover:text-[#181d1a]"
+                  disabled={isActionLoading}
+                  className="grid h-6 w-6 place-items-center rounded-md text-[#788078] hover:bg-black/5 hover:text-[#181d1a] transition disabled:opacity-40"
                   title="Rename group"
                 >
                   <Edit2 className="h-3 w-3" />
@@ -237,7 +276,8 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
             {isAdmin && !showAddMembers && (
               <button
                 onClick={() => setShowAddMembers(true)}
-                className="flex items-center gap-1 text-xs font-semibold text-[#2f7d68] hover:underline"
+                disabled={isActionLoading}
+                className="flex items-center gap-1 text-xs font-semibold text-[#2f7d68] hover:underline disabled:opacity-40"
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span>Add</span>
@@ -252,6 +292,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                 <span className="text-xs font-bold text-[#2f7d68]">Add new members</span>
                 <button
                   onClick={handleCloseAddMembers}
+                  disabled={isActionLoading}
                   className="text-xs text-[#788078] hover:text-black font-medium"
                 >
                   Cancel
@@ -332,9 +373,16 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                 <button
                   onClick={handleAddSelectedParticipants}
                   disabled={isActionLoading}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#216d5b] to-[#144f41] py-2 text-xs font-bold text-white shadow-xs hover:scale-101 active:scale-99 transition"
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#216d5b] to-[#144f41] py-2 text-xs font-bold text-white shadow-xs hover:scale-101 active:scale-99 transition disabled:opacity-50"
                 >
-                  {isActionLoading ? "Adding..." : `Add ${selectedToAdd.length} user(s)`}
+                  {processingState?.type === "add" && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  )}
+                  <span>
+                    {processingState?.type === "add"
+                      ? "Adding members..."
+                      : `Add ${selectedToAdd.length} user(s)`}
+                  </span>
                 </button>
               )}
             </div>
@@ -345,6 +393,12 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
             {conversation.participants?.map((participant: User) => {
               const isMemberAdmin = conversation.admins?.includes(participant._id);
               const isMe = participant._id === currentUser?._id;
+              const isPromotingThis =
+                processingState?.type === "promote" &&
+                processingState.userId === participant._id;
+              const isRemovingThis =
+                processingState?.type === "remove" &&
+                processingState.userId === participant._id;
 
               return (
                 <div
@@ -379,23 +433,31 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
 
                     {isAdmin && !isMemberAdmin && !isMe && (
                       <button
-                        onClick={() => handlePromote(participant._id)}
+                        onClick={() => setConfirmModal({ type: "promote", user: participant })}
                         disabled={isActionLoading}
                         title="Promote to Admin"
-                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-black/5 hover:text-[#2f7d68] transition"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-black/5 hover:text-[#2f7d68] transition disabled:opacity-40"
                       >
-                        <Shield className="h-3.5 w-3.5" />
+                        {isPromotingThis ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#2f7d68]" />
+                        ) : (
+                          <Shield className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     )}
 
                     {isAdmin && !isMe && (
                       <button
-                        onClick={() => handleRemove(participant._id)}
+                        onClick={() => setConfirmModal({ type: "remove", user: participant })}
                         disabled={isActionLoading}
                         title="Remove member"
-                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-red-50 hover:text-red-600 transition"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-red-50 hover:text-red-600 transition disabled:opacity-40"
                       >
-                        <UserMinus className="h-3.5 w-3.5" />
+                        {isRemovingThis ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-red-600" />
+                        ) : (
+                          <UserMinus className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     )}
                   </div>
@@ -408,12 +470,16 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
         {/* Leave Group Action */}
         <div className="pt-4 border-t border-black/10">
           <button
-            onClick={handleLeaveGroup}
+            onClick={() => setConfirmModal({ type: "leave" })}
             disabled={isActionLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50/60 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition shadow-2xs"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50/60 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition shadow-2xs disabled:opacity-50"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Leave Group</span>
+            {processingState?.type === "leave" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="h-3.5 w-3.5" />
+            )}
+            <span>{processingState?.type === "leave" ? "Leaving..." : "Leave Group"}</span>
           </button>
         </div>
       </div>
@@ -437,6 +503,93 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
       <aside className="hidden lg:flex w-80 shrink-0 border-l border-black/10 bg-[#fbfaf6] flex-col h-full overflow-hidden animate-drawer-right">
         {content}
       </aside>
+
+      {/* Confirmation Modal for Group Actions */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-backdrop-in">
+          <div className="relative w-full max-w-sm rounded-3xl border border-black/10 bg-white p-6 shadow-2xl animate-modal-in">
+            <button
+              onClick={() => setConfirmModal(null)}
+              className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-xl text-[#7c837c] hover:bg-black/5 hover:text-[#1a1f1c] transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              {confirmModal.type === "promote" && (
+                <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-[#1f5f51] shadow-inner">
+                  <Shield className="h-7 w-7" />
+                </div>
+              )}
+              {confirmModal.type === "remove" && (
+                <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-red-600 shadow-inner">
+                  <UserMinus className="h-7 w-7" />
+                </div>
+              )}
+              {confirmModal.type === "leave" && (
+                <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-amber-50 text-amber-700 shadow-inner">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+              )}
+
+              <h3 className="text-lg font-bold text-[#181d1a]">
+                {confirmModal.type === "promote" && "Promote to Admin?"}
+                {confirmModal.type === "remove" && "Remove from Group?"}
+                {confirmModal.type === "leave" && "Leave this Group?"}
+              </h3>
+
+              <p className="mt-2 text-xs leading-relaxed text-[#6c746d]">
+                {confirmModal.type === "promote" && (
+                  <>
+                    Are you sure you want to promote{" "}
+                    <span className="font-bold text-[#181d1a]">{confirmModal.user.name}</span> to a
+                    group admin? They will be able to add/remove participants and manage settings.
+                  </>
+                )}
+                {confirmModal.type === "remove" && (
+                  <>
+                    Are you sure you want to remove{" "}
+                    <span className="font-bold text-[#181d1a]">{confirmModal.user.name}</span> from
+                    this group? They will no longer have access to group messages.
+                  </>
+                )}
+                {confirmModal.type === "leave" && (
+                  <>
+                    Are you sure you want to leave{" "}
+                    <span className="font-bold text-[#181d1a]">{conversation.name}</span>? You will no
+                    longer receive updates from this conversation.
+                  </>
+                )}
+              </p>
+
+              <div className="mt-6 flex w-full gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(null)}
+                  disabled={isActionLoading}
+                  className="flex-1 rounded-2xl border border-black/10 bg-[#faf8f5] py-2.5 text-xs font-semibold text-[#404842] hover:bg-black/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAction}
+                  disabled={isActionLoading}
+                  className={`flex-1 rounded-2xl py-2.5 text-xs font-bold text-white shadow-md transition ${
+                    confirmModal.type === "promote"
+                      ? "bg-[#1f5f51] hover:bg-[#184c41] shadow-emerald-600/20"
+                      : "bg-[#c53929] hover:bg-[#a82d1f] shadow-red-500/20"
+                  }`}
+                >
+                  {confirmModal.type === "promote" && "Promote to Admin"}
+                  {confirmModal.type === "remove" && "Remove Member"}
+                  {confirmModal.type === "leave" && "Leave Group"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
