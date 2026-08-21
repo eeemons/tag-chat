@@ -20,6 +20,7 @@ import {
   lastMessageText,
 } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
+import { replaceEmoticonsWithEmoji } from "@/lib/emojis";
 import type { Conversation } from "@/lib/types";
 
 interface ConversationSidebarProps {
@@ -186,7 +187,7 @@ export function ConversationSidebar({
           const isSelected = conv._id === selectedConversationId;
           const isGroup = conv.type === "group";
           const title = conversationTitle(conv, currentUser);
-          const lastMsg = lastMessageText(conv.lastMessage);
+          const lastMsg = replaceEmoticonsWithEmoji(lastMessageText(conv.lastMessage));
           const time = formatDateTime(conversationTimestamp(conv));
           const unreadCount = unreadByConversation[conv._id] || 0;
           const hasUnread = unreadCount > 0 && !isSelected;

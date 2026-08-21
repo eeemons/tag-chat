@@ -7,6 +7,7 @@ import { fetchMessages, markMessageSeen, setTypingUser } from "@/features/chat/c
 import { formatDateTime, formatTime, initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
 import { useChatBackground } from "@/hooks/useChatBackground";
+import { replaceEmoticonsWithEmoji, isOnlyEmojis } from "@/lib/emojis";
 import type { Conversation, Message } from "@/lib/types";
 
 interface MessageListProps {
@@ -277,34 +278,47 @@ export function MessageList({ conversation }: MessageListProps) {
                 )}
 
                 <div className="flex flex-col">
-                  <div
-                    onClick={() => handleToggleMessageDetails(message._id)}
-                    className={`cursor-pointer rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all shadow-xs ${
-                      isMe
-                        ? "rounded-br-xs bg-gradient-to-br from-[#1d6b59] to-[#124d3f] text-white hover:brightness-105"
-                        : currentBackground.isDark
-                        ? "rounded-bl-xs border border-white/10 bg-[#1e2521] text-white hover:bg-[#252e29]"
-                        : "rounded-bl-xs border border-black/5 bg-white text-[#1f2421] hover:border-black/15"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                    <div
-                      className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] ${
-                        isMe ? "text-white/80" : currentBackground.isDark ? "text-white/60" : "text-[#889087]"
-                      }`}
-                    >
-                      <span>{formatTime(message.createdAt)}</span>
-                      {isMe && (
-                        <span title={isSeen ? `Seen at ${seenTime}` : "Delivered"}>
-                          {isSeen ? (
-                            <CheckCheck className="h-3.5 w-3.5 text-emerald-200 stroke-[2.5]" />
-                          ) : (
-                            <Check className="h-3.5 w-3.5 text-white/70" />
+                  {(() => {
+                    const parsedText = replaceEmoticonsWithEmoji(message.text);
+                    const isBigEmoji = isOnlyEmojis(parsedText);
+
+                    return (
+                      <div
+                        onClick={() => handleToggleMessageDetails(message._id)}
+                        className={`cursor-pointer rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all shadow-xs ${
+                          isMe
+                            ? "rounded-br-xs bg-gradient-to-br from-[#1d6b59] to-[#124d3f] text-white hover:brightness-105"
+                            : currentBackground.isDark
+                            ? "rounded-bl-xs border border-white/10 bg-[#1e2521] text-white hover:bg-[#252e29]"
+                            : "rounded-bl-xs border border-black/5 bg-white text-[#1f2421] hover:border-black/15"
+                        }`}
+                      >
+                        <p
+                          className={`whitespace-pre-wrap break-words ${
+                            isBigEmoji ? "text-2xl sm:text-3xl py-1" : ""
+                          }`}
+                        >
+                          {parsedText}
+                        </p>
+                        <div
+                          className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] ${
+                            isMe ? "text-white/80" : currentBackground.isDark ? "text-white/60" : "text-[#889087]"
+                          }`}
+                        >
+                          <span>{formatTime(message.createdAt)}</span>
+                          {isMe && (
+                            <span title={isSeen ? `Seen at ${seenTime}` : "Delivered"}>
+                              {isSeen ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-emerald-200 stroke-[2.5]" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5 text-white/70" />
+                              )}
+                            </span>
                           )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Tapped Detail Inspector (Seen / Unseen Status & Timestamp) */}
                   {isTapped && (

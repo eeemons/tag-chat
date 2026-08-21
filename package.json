@@ -11,8 +11,10 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
     "clsx": "^2.1.1",
+    "emoticon": "^4.1.0",
     "lucide-react": "^1.33.0",
     "next": "16.3.2",
+    "node-emoji": "^2.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-redux": "^9.3.0",

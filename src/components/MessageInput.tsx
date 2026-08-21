@@ -12,6 +12,7 @@ import { Send, Smile, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sendMessage } from "@/features/chat/chatSlice";
 import { emitChatTyping } from "@/lib/socket";
+import { replaceEmoticonsWithEmoji } from "@/lib/emojis";
 
 interface MessageInputProps {
   conversationId: string;
@@ -147,12 +148,14 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
       clearTimeout(typingTimerRef.current);
     }
 
+    const parsed = replaceEmoticonsWithEmoji(trimmed);
+
     try {
       setText("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
-      await dispatch(sendMessage({ conversationId, text: trimmed })).unwrap();
+      await dispatch(sendMessage({ conversationId, text: parsed })).unwrap();
     } catch {
       // Re-populate text if sending failed
       setText(trimmed);
