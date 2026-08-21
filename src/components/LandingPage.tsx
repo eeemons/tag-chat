@@ -13,7 +13,6 @@ import {
   Check,
   CheckCheck,
   Smile,
-  Bell,
   Smartphone,
   Flame,
   Crown,
@@ -93,7 +92,7 @@ export function LandingPage() {
             </h1>
 
             <p className="mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-[#555d56]">
-              Experience fluid 1-on-1 chats, rich group collaboration with admin tools, customizable textured wallpapers, and instantaneous live updates.
+              Experience fluid 1-on-1 chats, rich group collaboration with admin tools, customizable textured wallpapers, live online presence, and instant emoji auto-transformations.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
@@ -122,12 +121,12 @@ export function LandingPage() {
                   <span className="h-3 w-3 rounded-full bg-red-400/80" />
                   <span className="h-3 w-3 rounded-full bg-amber-400/80" />
                   <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
-                  <span className="ml-2 text-xs font-bold text-[#626a63]">Tag Chat — Live Preview</span>
+                  <span className="ml-2 text-xs font-bold text-[#626a63]">Tag Chat — Live Interactive Workspace</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[11px] font-bold text-[#1f5f51]">
                     <Radio className="h-3 w-3 animate-pulse" />
-                    WebSocket Connected
+                    Live Presence Active
                   </span>
                 </div>
               </div>
@@ -158,17 +157,22 @@ export function LandingPage() {
               </div>
 
               {/* Chat Simulation Viewport */}
-              <div className="grid h-[420px] sm:grid-cols-[280px_1fr]">
+              <div className="grid h-[440px] sm:grid-cols-[280px_1fr]">
                 {/* Left Mini Sidebar */}
                 <div className="hidden sm:flex flex-col border-r border-black/10 bg-[#fcfbf8]">
-                  <div className="p-3 border-b border-black/10">
+                  <div className="p-3 border-b border-black/10 flex items-center justify-between">
                     <span className="text-xs font-bold text-[#161a18]">Active Chats</span>
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[9px] font-extrabold text-[#1f5f51]">
+                      3 Chats
+                    </span>
                   </div>
                   <div className="flex-1 space-y-1 p-2 overflow-y-auto">
-                    {/* Active Conversation */}
-                    <div className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-[#2f7d68]/30 p-2.5 shadow-2xs">
-                      <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#2f7d68] to-[#124d3f] text-white text-xs font-bold shrink-0">
-                        FB
+                    {/* Active Group Conversation */}
+                    <div className="flex items-start gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-[#2f7d68]/30 p-2.5 shadow-2xs">
+                      <div className="relative shrink-0">
+                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#2f7d68] to-[#124d3f] text-white text-xs font-bold shrink-0">
+                          FB
+                        </div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
@@ -176,38 +180,49 @@ export function LandingPage() {
                           <span className="text-[10px] text-[#717871]">Just now</span>
                         </div>
                         <p className="text-[11px] text-[#2f7d68] font-semibold truncate animate-pulse">
-                          {simulatedTyping ? "Julian is typing..." : "See you at the field!"}
+                          {simulatedTyping ? "Julian is typing..." : "See you at 6 PM! 🙂⚽"}
                         </p>
                       </div>
                     </div>
 
-                    {/* Other Conversations */}
-                    <div className="flex items-center gap-2.5 rounded-xl p-2.5 hover:bg-black/5 transition">
-                      <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#e07a5f] to-[#b85b43] text-white text-xs font-bold shrink-0">
-                        RL
+                    {/* Direct Conversation with Online Badge */}
+                    <div className="flex items-start gap-2.5 rounded-2xl p-2.5 hover:bg-black/5 transition border border-transparent">
+                      <div className="relative shrink-0">
+                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#e07a5f] to-[#b85b43] text-white text-xs font-bold shrink-0">
+                          RL
+                        </div>
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-[#1a1f1c] truncate">Romelu Lukaku</p>
+                          <p className="text-xs font-bold text-[#1a1f1c] truncate">
+                            Romelu <span className="text-[10px] text-emerald-600 font-semibold">(Online)</span>
+                          </p>
                           <span className="text-[10px] text-[#717871]">2m</span>
                         </div>
-                        <p className="text-[11px] text-[#717871] truncate">How are you doing?</p>
+                        <p className="text-[11px] text-[#717871] truncate">How are you doing? 👍</p>
                       </div>
                       <span className="grid h-4 w-4 place-items-center rounded-full bg-[#1f5f51] text-[9px] font-bold text-white">
                         2
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2.5 rounded-xl p-2.5 hover:bg-black/5 transition">
-                      <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#3d5a80] to-[#293241] text-white text-xs font-bold shrink-0">
-                        AL
+                    {/* Offline Direct Conversation */}
+                    <div className="flex items-start gap-2.5 rounded-2xl p-2.5 hover:bg-black/5 transition border border-transparent">
+                      <div className="relative shrink-0">
+                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#3d5a80] to-[#293241] text-white text-xs font-bold shrink-0">
+                          AL
+                        </div>
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-gray-300 ring-2 ring-white" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-[#1a1f1c] truncate">Ada Lovelace</p>
+                          <p className="text-xs font-bold text-[#1a1f1c] truncate">
+                            Ada <span className="text-[10px] text-[#717871] font-normal">(Offline)</span>
+                          </p>
                           <span className="text-[10px] text-[#717871]">1h</span>
                         </div>
-                        <p className="text-[11px] text-[#717871] truncate">The code is pushed.</p>
+                        <p className="text-[11px] text-[#717871] truncate">The code is pushed! 🚀</p>
                       </div>
                     </div>
                   </div>
@@ -236,33 +251,36 @@ export function LandingPage() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-bold text-[#181d1a]">Footballers</p>
-                          <span className="rounded bg-emerald-100 px-1.5 py-0.2 text-[9px] font-bold text-[#1f5f51]">
-                            Group (3)
+                          <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.2 text-[9px] font-extrabold text-amber-800">
+                            <Crown className="h-2.5 w-2.5 text-amber-600" />
+                            Admin
                           </span>
                         </div>
-                        <p className="text-[10px] text-[#6d756d]">Romelu, Julian, You</p>
+                        <p className="text-[10px] text-[#6d756d]">
+                          3 members • <span className="text-emerald-700 font-semibold">2 online</span>
+                        </p>
                       </div>
                     </div>
 
-                    {/* Reaction Buttons */}
+                    {/* Quick Reaction Pill Buttons */}
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => triggerReaction("🔥")}
-                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-115"
+                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-120"
                         title="React Fire"
                       >
                         🔥
                       </button>
                       <button
                         onClick={() => triggerReaction("❤️")}
-                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-115"
+                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-120"
                         title="React Heart"
                       >
                         ❤️
                       </button>
                       <button
                         onClick={() => triggerReaction("🚀")}
-                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-115"
+                        className="rounded-lg p-1.5 text-xs hover:bg-black/5 transition hover:scale-120"
                         title="React Rocket"
                       >
                         🚀
@@ -272,22 +290,22 @@ export function LandingPage() {
 
                   {/* Messages Area */}
                   <div className="relative z-10 flex-1 space-y-3 p-4 overflow-y-auto">
-                    {/* Incoming Message */}
+                    {/* Incoming Message with Auto-Converted Emoticon */}
                     <div className="flex items-end gap-2">
                       <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#e07a5f] to-[#b85b43] text-white text-[10px] font-bold shrink-0">
                         RL
                       </div>
                       <div className="max-w-[75%] rounded-2xl rounded-bl-xs border border-black/10 bg-white p-3 shadow-xs">
                         <p className="text-[10px] font-bold text-[#e07a5f] mb-0.5">Romelu Lukaku</p>
-                        <p className="text-xs text-[#1a1f1c]">Are we playing today evening at 6 PM?</p>
+                        <p className="text-xs text-[#1a1f1c]">Are we playing today evening at 6 PM? 🙂</p>
                         <span className="mt-1 block text-right text-[9px] text-[#868e87]">6:40 PM</span>
                       </div>
                     </div>
 
-                    {/* Outgoing Message (You) */}
+                    {/* Outgoing Message (You) with Heart Emoticon Converted */}
                     <div className="flex items-end justify-end gap-2">
                       <div className="max-w-[75%] rounded-2xl rounded-br-xs bg-gradient-to-br from-[#1f5f51] to-[#124d3f] p-3 text-white shadow-md shadow-[#1f5f51]/20">
-                        <p className="text-xs font-medium">Yes! Julian and I are already geared up.</p>
+                        <p className="text-xs font-medium">Yes! Julian and I are already geared up. ❤️</p>
                         <div className="mt-1 flex items-center justify-end gap-1 text-[9px] text-emerald-100/90">
                           <span>6:41 PM</span>
                           <CheckCheck className="h-3 w-3 text-emerald-300" />
@@ -295,7 +313,7 @@ export function LandingPage() {
                       </div>
                     </div>
 
-                    {/* Live Typing Simulation */}
+                    {/* Live Typing Wave Simulation */}
                     {simulatedTyping && (
                       <div className="flex items-center gap-2 animate-fade-in">
                         <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#e76f51] to-[#f4a261] text-white text-[10px] font-bold shrink-0">
@@ -313,20 +331,29 @@ export function LandingPage() {
                     )}
                   </div>
 
-                  {/* Bottom Input Preview */}
-                  <div className="relative z-10 border-t border-black/10 bg-white/95 p-3 backdrop-blur-xs flex items-center gap-2">
-                    <div className="flex-1 rounded-xl border border-black/15 bg-[#faf8f5] px-3.5 py-2 text-xs text-[#7e857f] flex items-center justify-between">
-                      <span>Type here...</span>
-                      <Smile className="h-3.5 w-3.5 text-[#9ea49e]" />
+                  {/* Bottom Compact Input Bar with Emoji Button */}
+                  <div className="relative z-10 border-t border-black/10 bg-white/95 px-3 py-2 backdrop-blur-xs flex items-center gap-2">
+                    <div className="flex-1 rounded-xl border border-black/15 bg-[#faf8f5] px-3 py-1.5 text-xs text-[#7e857f] flex items-center justify-between">
+                      <span className="text-xs text-[#6e756e]">Type a message or :) for emojis...</span>
+                      <button
+                        onClick={() => triggerReaction("✨")}
+                        className="text-[#889088] hover:text-[#1f5f51] transition hover:scale-110"
+                        title="Emoji button"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#216d5b] to-[#144f41] text-white shadow-xs">
+                    <button
+                      onClick={() => triggerReaction("🚀")}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#216d5b] to-[#144f41] text-white shadow-xs hover:scale-105 active:scale-95 transition"
+                    >
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
                   {/* Playful Floating Reaction Animation */}
                   {floatingReaction && (
-                    <div className="pointer-events-none absolute bottom-16 right-8 text-3xl animate-bounce">
+                    <div className="pointer-events-none absolute bottom-16 right-8 text-4xl animate-bounce">
                       {floatingReaction}
                     </div>
                   )}
@@ -344,38 +371,38 @@ export function LandingPage() {
               <span>Why You&apos;ll Love Tag Chat</span>
             </div>
             <h2 className="text-3xl font-extrabold tracking-tight text-[#141816] sm:text-4xl">
-              Chatting made delightfully simple & lively.
+              Everything built for delightful conversations.
             </h2>
             <p className="text-sm sm:text-base text-[#5c645e] leading-relaxed">
-              Packed with fun features, instant messaging, and customizable styles made for everyday conversations.
+              Packed with live presence, customizable wallpapers, smart emoticons, and team collaboration made effortless.
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Card 1: Lightning Fast 1-on-1 */}
+            {/* Card 1: Live Presence & Instant Delivery */}
             <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-md shadow-emerald-600/25 group-hover:rotate-6 transition duration-300">
-                    <Zap className="h-6 w-6" />
+                    <Radio className="h-6 w-6" />
                   </div>
                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-[#1f5f51]">
-                    Instant Delivery
+                    Live Presence
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-[#1f5f51] transition">
-                  Lightning Fast 1-on-1 Chats
+                  Live Online & Offline Badges
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Send and receive messages the moment you press Enter. No waiting, no delays — just fluid, continuous conversations.
+                  Know when friends are online with green beacon indicators beside their names, and see live active counts in group spaces.
                 </p>
               </div>
 
               {/* Playful Interactive Mini-Widget */}
               <div className="mt-5 rounded-2xl bg-[#faf8f5] p-3 border border-black/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-[11px] font-semibold text-[#3a423c]">Message Sent</span>
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[11px] font-bold text-[#1f5f51]">(Online)</span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] font-bold text-[#1f5f51]">
                   <span>Delivered</span>
@@ -384,7 +411,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Card 2: Group Hangouts */}
+            {/* Card 2: Group Hangouts & Admin Governance */}
             <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-teal-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -396,10 +423,10 @@ export function LandingPage() {
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-teal-800 transition">
-                  Supercharged Group Hangouts
+                  Groups & Admin Governance
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Bring your friends, family, or teammates together. Assign group admins, add new members, and keep everyone connected.
+                  Bring everyone together. Promote trusted members to admins, manage squad rosters, and rename rooms on the fly.
                 </p>
               </div>
 
@@ -438,13 +465,13 @@ export function LandingPage() {
                   Dress Up Your Chat Background
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Bored of plain backgrounds? Choose from 10 textured themes — from warm parchment paper to starry midnight constellations.
+                  Bored of plain backgrounds? Choose from 10 textured themes — from warm canvas and micro-dots to starry midnight constellations.
                 </p>
               </div>
 
               {/* Playful Wallpaper Swatch Widget */}
               <div className="mt-5 rounded-2xl bg-[#faf8f5] p-3 border border-black/5 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#444c45]">Styles:</span>
+                <span className="text-[11px] font-bold text-[#444c45]">Textures:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="h-5 w-5 rounded-full bg-[#faf8f5] border-2 border-[#1f5f51] shadow-2xs" />
                   <span className="h-5 w-5 rounded-full bg-[#f2f7f4] border border-black/10" />
@@ -454,22 +481,48 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Card 4: Live Typing Waves */}
+            {/* Card 4: Smart Emoji Picker & Emoticons */}
+            <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-pink-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md shadow-pink-600/25 group-hover:rotate-6 transition duration-300">
+                    <Smile className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-pink-50 px-2.5 py-0.5 text-[11px] font-bold text-pink-800">
+                    Open-Source Magic
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-pink-800 transition">
+                  Smart Emojis & Emoticon Transform
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
+                  Type text shortcuts like <code className="rounded bg-black/5 px-1 py-0.5 font-mono text-[11px] font-bold text-pink-700">:)</code> or <code className="rounded bg-black/5 px-1 py-0.5 font-mono text-[11px] font-bold text-pink-700">&lt;3</code> and see them instantly transform into expressive Unicode emojis.
+                </p>
+              </div>
+
+              {/* Playful Emoji Transformation Widget */}
+              <div className="mt-5 rounded-2xl bg-[#faf8f5] p-3 border border-black/5 flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-[#444c45]">:) ➔ 🙂 &bull; &lt;3 ➔ ❤️</span>
+                <span className="text-sm font-bold animate-bounce">🔥 🚀</span>
+              </div>
+            </div>
+
+            {/* Card 5: Real-Time Typing Waves */}
             <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-indigo-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-600/25 group-hover:rotate-6 transition duration-300">
-                    <Radio className="h-6 w-6" />
+                    <Zap className="h-6 w-6" />
                   </div>
                   <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-800">
-                    Live Presence
+                    Live Feedback
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-indigo-800 transition">
                   Real-Time Typing Waves
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Never talk over someone again. See animated typing indicators the moment your friends start composing a thought.
+                  Never talk over someone again. See animated typing indicators the moment friends start composing thoughts.
                 </p>
               </div>
 
@@ -484,7 +537,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Card 5: Pocket Sized & Full Screen */}
+            {/* Card 6: Pocket Sized & Full Screen */}
             <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -492,14 +545,14 @@ export function LandingPage() {
                     <Smartphone className="h-6 w-6" />
                   </div>
                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
-                    Any Screen
+                    Edge-to-Edge
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-emerald-900 transition">
-                  Pocket-Sized & Edge-to-Edge
+                  Pocket-Sized & Full Screen
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Whether you&apos;re on a wide desktop display or a mobile phone, the smooth slide drawer and full-screen layout feel just right.
+                  Whether on wide desktop displays or phones, full-screen viewport layout and smooth slide drawers provide a delightful experience.
                 </p>
               </div>
 
@@ -508,34 +561,6 @@ export function LandingPage() {
                 <span className="text-[11px] font-semibold text-[#444c45]">Mobile Slide Drawer</span>
                 <span className="rounded-md bg-emerald-100/90 px-2 py-0.5 text-[10px] font-extrabold text-[#1f5f51]">
                   Smooth 60FPS
-                </span>
-              </div>
-            </div>
-
-            {/* Card 6: Smart Unread Alerts */}
-            <div className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-7 shadow-xs hover:shadow-2xl hover:border-rose-500/40 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-600/25 group-hover:rotate-6 transition duration-300">
-                    <Bell className="h-6 w-6" />
-                  </div>
-                  <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">
-                    Never Miss Out
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-[#181d1a] group-hover:text-rose-800 transition">
-                  Smart Unread Badges & Alerts
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#687069]">
-                  Glowing badge counters and live browser tab indicators keep you aware of incoming messages without overwhelming you.
-                </p>
-              </div>
-
-              {/* Playful Badge Counter Widget */}
-              <div className="mt-5 rounded-2xl bg-[#faf8f5] p-3 border border-black/5 flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[#444c45]">Unread Messages</span>
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1f5f51] px-1.5 text-[10px] font-extrabold text-white animate-pulse">
-                  3 New
                 </span>
               </div>
             </div>
