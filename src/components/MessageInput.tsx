@@ -103,7 +103,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+            placeholder="Type here..."
             disabled={disabled}
             className="w-full resize-none bg-transparent px-4 py-3 text-sm text-[#1d211f] placeholder:text-[#9ea49d] outline-none disabled:opacity-50 max-h-32 leading-relaxed"
           />
