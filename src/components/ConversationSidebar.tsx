@@ -50,6 +50,7 @@ export function ConversationSidebar({
     conversationsStatus,
     unreadByConversation,
     onlineUsers,
+    typingByConversation,
   } = useAppSelector((state) => state.chat);
   const [filterQuery, setFilterQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -195,6 +196,10 @@ export function ConversationSidebar({
           const otherUserId = !isGroup && conv.participant ? conv.participant._id : null;
           const isOtherOnline = Boolean(otherUserId && onlineUsers[otherUserId]);
 
+          const otherTypers = (typingByConversation[conv._id] || []).filter(
+            (t) => t.userId !== currentUser?._id,
+          );
+
           return (
             <button
               key={conv._id}
@@ -278,7 +283,19 @@ export function ConversationSidebar({
                         : "text-[#6c746d]"
                     }`}
                   >
-                    {lastMsg}
+                    {otherTypers.length > 0 ? (
+                      <span
+                        className={`font-semibold animate-pulse ${
+                          isSelected ? "text-white" : "text-[#1f5f51]"
+                        }`}
+                      >
+                        {otherTypers.length === 1
+                          ? `${otherTypers[0].userName} is typing...`
+                          : `${otherTypers.length} people typing...`}
+                      </span>
+                    ) : (
+                      lastMsg
+                    )}
                   </p>
 
                   <div className="flex items-center gap-1.5 shrink-0">

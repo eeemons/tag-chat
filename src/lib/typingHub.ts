@@ -69,13 +69,14 @@ export function publishTyping(
     convMap.delete(userId);
   }
 
-  // Notify active stream subscribers for this conversation
+  const data = {
+    type: "typing" as const,
+    payload: { conversationId, userId, userName, isTyping },
+  };
+
+  // 1. Notify active stream subscribers for this conversation
   const convSubscribers = streamSubscribers.get(conversationId);
   if (convSubscribers && convSubscribers.size > 0) {
-    const data = {
-      type: "typing" as const,
-      payload: { conversationId, userId, userName, isTyping },
-    };
     convSubscribers.forEach((listener) => {
       try {
         listener(data);
@@ -84,6 +85,15 @@ export function publishTyping(
       }
     });
   }
+
+  // 2. Also notify global subscribers (so top-level app receives cross-chat typing updates)
+  globalSubscribers.forEach((listener) => {
+    try {
+      listener(data);
+    } catch {
+      // Ignored
+    }
+  });
 }
 
 export function publishPresence(userId: string, isOnline: boolean) {

@@ -71,7 +71,7 @@ export function MessageList({ conversation }: MessageListProps) {
                 }),
               );
             });
-          } else if (data.type === "update" && data.payload) {
+          } else if ((data.type === "typing" || data.type === "update") && data.payload) {
             dispatch(setTypingUser(data.payload));
           }
         } catch {

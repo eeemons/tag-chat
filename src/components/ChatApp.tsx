@@ -143,6 +143,18 @@ export function ChatApp() {
             dispatch(userPresenceChanged(data.payload));
           } else if (data.type === "profile_updated" && data.payload) {
             dispatch(userProfileUpdated(data.payload));
+          } else if (data.type === "typing" && data.payload) {
+            dispatch(setTypingUser(data.payload));
+            if (data.payload.isTyping) {
+              const timerKey = `${data.payload.conversationId}_${data.payload.userId}`;
+              if (typingTimersRef.current[timerKey]) {
+                clearTimeout(typingTimersRef.current[timerKey]);
+              }
+              typingTimersRef.current[timerKey] = setTimeout(() => {
+                dispatch(setTypingUser({ ...data.payload, isTyping: false }));
+                delete typingTimersRef.current[timerKey];
+              }, 3500);
+            }
           }
         } catch {
           // Ignore
