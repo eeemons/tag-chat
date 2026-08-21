@@ -180,9 +180,13 @@ function emptyBucket(): MessagesBucket {
 
 function mergeMessages(existing: Message[], incoming: Message[]) {
   const byId = new Map<string, Message>();
-  [...existing, ...incoming].forEach((message) => byId.set(message._id, message));
+  [...existing, ...incoming].forEach((message) => {
+    if (message && message._id) {
+      byId.set(message._id, message);
+    }
+  });
   return [...byId.values()].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(),
   );
 }
 

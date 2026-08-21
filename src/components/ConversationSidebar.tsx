@@ -4,7 +4,13 @@ import { useState, useMemo } from "react";
 import { Search, Users, MessageSquarePlus, MessageSquare } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectConversation } from "@/features/chat/chatSlice";
-import { conversationTitle, formatDateTime, initials, lastMessageText } from "@/lib/format";
+import {
+  conversationTitle,
+  conversationTimestamp,
+  formatDateTime,
+  initials,
+  lastMessageText,
+} from "@/lib/format";
 import type { Conversation } from "@/lib/types";
 
 interface ConversationSidebarProps {
@@ -107,7 +113,7 @@ export function ConversationSidebar({
           const isGroup = conv.type === "group";
           const title = conversationTitle(conv, currentUser);
           const lastMsg = lastMessageText(conv.lastMessage);
-          const time = formatDateTime(conv.updatedAt || conv.lastMessage && "createdAt" in conv.lastMessage ? (conv.lastMessage as { createdAt?: string }).createdAt : undefined);
+          const time = formatDateTime(conversationTimestamp(conv));
 
           return (
             <button
