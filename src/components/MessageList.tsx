@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState, UIEvent, useLayoutEffect } from "react";
 import { ArrowDown, CheckCheck, Check, Loader2, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMessages, markMessageSeen, setTypingUser } from "@/features/chat/chatSlice";
+import {
+  fetchMessages,
+  markMessageSeen,
+  setTypingUser,
+  userPresenceChanged,
+  batchPresenceSynced,
+} from "@/features/chat/chatSlice";
 import { formatDateTime, formatTime, initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
 import { useChatBackground } from "@/hooks/useChatBackground";
@@ -60,7 +66,11 @@ export function MessageList({ conversation }: MessageListProps) {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "snapshot" && Array.isArray(data.typers)) {
+          if (data.type === "presence_sync" && Array.isArray(data.onlineUsers)) {
+            dispatch(batchPresenceSynced(data.onlineUsers));
+          } else if (data.type === "presence" && data.payload) {
+            dispatch(userPresenceChanged(data.payload));
+          } else if (data.type === "snapshot" && Array.isArray(data.typers)) {
             data.typers.forEach((t: { userId: string; userName: string }) => {
               dispatch(
                 setTypingUser({

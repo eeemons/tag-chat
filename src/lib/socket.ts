@@ -1,6 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import { SOCKET_URL } from "@/lib/api";
 import type { Conversation, Message } from "@/lib/types";
+import { broadcastGlobalTyping, broadcastGlobalPresence } from "@/lib/globalPresence";
 
 export type TypingPayload = {
   conversationId: string;
@@ -15,11 +16,18 @@ export type ProfileUpdatePayload = {
   phone?: string;
 };
 
+export type PresencePayload = {
+  userId: string;
+  isOnline: boolean;
+};
+
 type SocketHandlers = {
   onMessage: (message: Message) => void;
   onConversation: (conversation: Conversation) => void;
   onTyping?: (payload: TypingPayload) => void;
   onProfileUpdate?: (payload: ProfileUpdatePayload) => void;
+  onPresence?: (payload: PresencePayload) => void;
+  onBatchPresence?: (users: string[]) => void;
   onStatus: (connected: boolean) => void;
   onError: (message: string) => void;
 };
@@ -76,6 +84,10 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
           isTyping: false,
         });
       }
+      // Mark sender as online
+      if (handlers.onPresence && message.sender) {
+        handlers.onPresence({ userId: message.sender, isOnline: true });
+      }
       handlers.onMessage(message);
     }
   });
@@ -104,12 +116,19 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
         isTyping,
       });
     }
+
+    if (userId && handlers.onPresence && isTyping) {
+      handlers.onPresence({ userId, isOnline: true });
+    }
   };
 
   socket.on("typing", (payload) => handleTypingEvent(payload, true));
   socket.on("typing:start", (payload) => handleTypingEvent(payload, true));
   socket.on("typing:stop", (payload) => handleTypingEvent(payload, false));
   socket.on("user:typing", (payload) => handleTypingEvent(payload, true));
+  socket.on("user:start_typing", (payload) => handleTypingEvent(payload, true));
+  socket.on("user:stop_typing", (payload) => handleTypingEvent(payload, false));
+  socket.on("chat:typing", (payload) => handleTypingEvent(payload, true));
 
   // Profile update event listeners
   const handleProfileEvent = (payload: unknown) => {
@@ -122,26 +141,84 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
     if (userId && name && handlers.onProfileUpdate) {
       handlers.onProfileUpdate({ userId, name, phone });
     }
+
+    if (userId && handlers.onPresence) {
+      handlers.onPresence({ userId, isOnline: true });
+    }
   };
 
   socket.on("user:update", handleProfileEvent);
   socket.on("profile:updated", handleProfileEvent);
   socket.on("user:profile_updated", handleProfileEvent);
 
+  // Presence event listeners
+  const handlePresenceEvent = (payload: unknown, defaultIsOnline = true) => {
+    if (!payload) return;
+    if (typeof payload === "string") {
+      handlers.onPresence?.({ userId: payload, isOnline: defaultIsOnline });
+      return;
+    }
+    if (Array.isArray(payload)) {
+      const ids = payload
+        .map((u) => (typeof u === "object" && u ? (u as Record<string, unknown>)._id || (u as Record<string, unknown>).id || (u as Record<string, unknown>).userId : String(u)))
+        .filter(Boolean) as string[];
+      handlers.onBatchPresence?.(ids);
+      return;
+    }
+    if (typeof payload === "object") {
+      const raw = payload as Record<string, unknown>;
+      const userId = String(raw.userId || raw._id || raw.id || raw.user || "");
+      const isOnline =
+        typeof raw.isOnline === "boolean"
+          ? raw.isOnline
+          : typeof raw.online === "boolean"
+          ? raw.online
+          : defaultIsOnline;
+
+      if (userId) {
+        handlers.onPresence?.({ userId, isOnline });
+      }
+
+      if (Array.isArray(raw.users) || Array.isArray(raw.onlineUsers)) {
+        const list = (((raw.users || raw.onlineUsers) as unknown[]) || [])
+          .map((u) => (typeof u === "object" && u ? (u as Record<string, unknown>)._id || (u as Record<string, unknown>).id || (u as Record<string, unknown>).userId : String(u)))
+          .filter(Boolean) as string[];
+        handlers.onBatchPresence?.(list);
+      }
+    }
+  };
+
+  socket.on("user:online", (payload) => handlePresenceEvent(payload, true));
+  socket.on("user:connected", (payload) => handlePresenceEvent(payload, true));
+  socket.on("user:active", (payload) => handlePresenceEvent(payload, true));
+  socket.on("user:offline", (payload) => handlePresenceEvent(payload, false));
+  socket.on("user:disconnected", (payload) => handlePresenceEvent(payload, false));
+  socket.on("presence", (payload) => handlePresenceEvent(payload, true));
+  socket.on("presence:sync", (payload) => handlePresenceEvent(payload, true));
+  socket.on("users:online", (payload) => handlePresenceEvent(payload, true));
+  socket.on("online:users", (payload) => handlePresenceEvent(payload, true));
+
   // Cross-tab broadcast listener for instant local multi-user testing
   if (broadcastChannel) {
     broadcastChannel.onmessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === "typing" && event.data.payload) {
-        if (handlers.onTyping) {
-          handlers.onTyping(event.data.payload);
-        }
+      if (!event.data) return;
+
+      if (event.data.type === "typing" && event.data.payload) {
+        handlers.onTyping?.(event.data.payload);
       } else if (
-        (event.data && event.data.type === "profile_updated") ||
-        event.data?.type === "user:profile_updated"
+        event.data.type === "profile_updated" ||
+        event.data.type === "user:profile_updated"
       ) {
-        if (event.data.payload && handlers.onProfileUpdate) {
-          handlers.onProfileUpdate(event.data.payload);
+        if (event.data.payload) {
+          handlers.onProfileUpdate?.(event.data.payload);
         }
+      } else if (event.data.type === "presence" && event.data.payload) {
+        handlers.onPresence?.(event.data.payload);
+      } else if (
+        event.data.type === "presence_sync" &&
+        Array.isArray(event.data.onlineUsers)
+      ) {
+        handlers.onBatchPresence?.(event.data.onlineUsers);
       }
     };
   }
@@ -157,7 +234,10 @@ export function emitChatTyping(
 ) {
   const payload: TypingPayload = { conversationId, userId, userName, isTyping };
 
-  // 1. Post to Next.js Real-Time Typing Hub (works across all browsers, devices, incognito)
+  // 1. Global PubSub broadcast (Works across Internet / Netlify / Vercel serverless)
+  broadcastGlobalTyping(conversationId, userId, userName, isTyping);
+
+  // 2. Post to Next.js Real-Time Typing Hub (for local dev)
   if (typeof window !== "undefined") {
     fetch("/api/typing", {
       method: "POST",
@@ -168,7 +248,7 @@ export function emitChatTyping(
     });
   }
 
-  // 2. Broadcast over local channel (for 0ms cross-tab live sync)
+  // 3. Broadcast over local channel (for 0ms cross-tab live sync)
   if (broadcastChannel) {
     try {
       broadcastChannel.postMessage({ type: "typing", payload });
@@ -177,10 +257,45 @@ export function emitChatTyping(
     }
   }
 
-  // 3. Emit over WebSocket
+  // 4. Emit over WebSocket
   if (activeSocket && activeSocket.connected) {
     activeSocket.emit("typing", payload);
     activeSocket.emit(isTyping ? "typing:start" : "typing:stop", payload);
+    activeSocket.emit(isTyping ? "user:start_typing" : "user:stop_typing", payload);
+    activeSocket.emit("user:typing", payload);
+  }
+}
+
+export function emitPresence(userId: string, isOnline: boolean) {
+  const payload: PresencePayload = { userId, isOnline };
+
+  // 1. Global PubSub broadcast (Works across Internet / Netlify / Vercel serverless)
+  broadcastGlobalPresence(userId, isOnline);
+
+  // 2. Post to Next.js Real-Time Presence Hub
+  if (typeof window !== "undefined") {
+    fetch("/api/presence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Ignore network errors
+    });
+  }
+
+  // 3. Broadcast over local channel
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ type: "presence", payload });
+    } catch {
+      // Ignore
+    }
+  }
+
+  // 4. Emit over WebSocket
+  if (activeSocket && activeSocket.connected) {
+    activeSocket.emit(isOnline ? "user:online" : "user:offline", payload);
+    activeSocket.emit("presence", payload);
   }
 }
 

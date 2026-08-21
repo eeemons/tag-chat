@@ -16,7 +16,8 @@ import {
   batchPresenceSynced,
 } from "@/features/chat/chatSlice";
 import { logout, restoreSession } from "@/features/auth/authSlice";
-import { createChatSocket, emitProfileUpdate } from "@/lib/socket";
+import { createChatSocket, emitProfileUpdate, emitPresence } from "@/lib/socket";
+import { initGlobalPresence, subscribeGlobalPresence } from "@/lib/globalPresence";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { ChatShell } from "@/components/ChatShell";
 import { LoginScreen } from "@/components/LoginScreen";
@@ -44,21 +45,29 @@ export function ChatApp() {
     // Broadcast updated profile across connected peers
     emitProfileUpdate(user._id, user.name, user.phone);
 
-    // Initial heartbeat
-    fetch("/api/presence", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user._id, isOnline: true }),
-    }).catch(() => {});
+    // Initial presence broadcast & heartbeat
+    emitPresence(user._id, true);
+    dispatch(userPresenceChanged({ userId: user._id, isOnline: true }));
 
-    // Periodic heartbeat every 20s
-    const heartbeatInterval = setInterval(() => {
+    const sendHeartbeat = () => {
       fetch("/api/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user._id, isOnline: true }),
-      }).catch(() => {});
-    }, 20000);
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.onlineUsers && Array.isArray(data.onlineUsers)) {
+            dispatch(batchPresenceSynced(data.onlineUsers));
+          }
+        })
+        .catch(() => {});
+    };
+
+    sendHeartbeat();
+
+    // Periodic heartbeat every 15s
+    const heartbeatInterval = setInterval(sendHeartbeat, 15000);
 
     const handleUnload = () => {
       navigator.sendBeacon?.(
@@ -117,6 +126,12 @@ export function ChatApp() {
       onProfileUpdate: (payload) => {
         dispatch(userProfileUpdated(payload));
       },
+      onPresence: (payload) => {
+        dispatch(userPresenceChanged(payload));
+      },
+      onBatchPresence: (users) => {
+        dispatch(batchPresenceSynced(users));
+      },
       onStatus: (connected) => dispatch(setSocketConnected(connected)),
       onError: (message) => dispatch(setSocketError(message)),
     });
@@ -168,6 +183,36 @@ export function ChatApp() {
       eventSource?.close();
     };
   }, [token, dispatch]);
+
+  // Global Real-Time Presence & Typing Subscriber (100% reliable across Netlify, Vercel & Local)
+  useEffect(() => {
+    if (!token || !user) return;
+
+    initGlobalPresence(user._id);
+
+    const unsubscribe = subscribeGlobalPresence({
+      onTyping: (payload) => {
+        dispatch(setTypingUser(payload));
+        if (payload.isTyping) {
+          const timerKey = `${payload.conversationId}_${payload.userId}`;
+          if (typingTimersRef.current[timerKey]) {
+            clearTimeout(typingTimersRef.current[timerKey]);
+          }
+          typingTimersRef.current[timerKey] = setTimeout(() => {
+            dispatch(setTypingUser({ ...payload, isTyping: false }));
+            delete typingTimersRef.current[timerKey];
+          }, 3500);
+        }
+      },
+      onPresence: (payload) => {
+        dispatch(userPresenceChanged(payload));
+      },
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, token, user]);
 
   useEffect(() => {
     if (!selectedConversationId && conversations.length > 0) {
