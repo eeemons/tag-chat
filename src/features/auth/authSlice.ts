@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { chatApi } from "@/lib/api";
 import type { User } from "@/lib/types";
 
@@ -107,4 +107,3 @@ const authSlice = createSlice({
 
 export const { logout, clearAuthError } = authSlice.actions;
 export default authSlice.reducer;
-
