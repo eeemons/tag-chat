@@ -126,6 +126,15 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                       <h2 className="truncate text-base font-bold text-[#1c221e]">
                         {title}
                       </h2>
+                      {!isGroup && (
+                        <span
+                          className={`text-xs font-semibold ${
+                            isDirectOnline ? "text-emerald-600" : "text-[#7b837c]"
+                          }`}
+                        >
+                          ({isDirectOnline ? "Online" : "Offline"})
+                        </span>
+                      )}
                       {isAdmin && (
                         <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#2f7d68]/15 to-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#1f5f51]">
                           <Shield className="h-3 w-3" />
@@ -147,22 +156,7 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                         </span>
                       </p>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span
-                          className={`flex items-center gap-1 font-semibold ${
-                            isDirectOnline ? "text-emerald-600" : "text-[#7b837c]"
-                          }`}
-                        >
-                          <span
-                            className={`h-2 w-2 rounded-full ${
-                              isDirectOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
-                            }`}
-                          />
-                          {isDirectOnline ? "Online" : "Offline"}
-                        </span>
-                        {subtitle && <span className="text-[#a0a6a0]">•</span>}
-                        {subtitle && <span className="truncate text-[#70776f]">{subtitle}</span>}
-                      </div>
+                      <p className="truncate text-xs text-[#70776f]">{subtitle}</p>
                     )}
                   </div>
                 </>

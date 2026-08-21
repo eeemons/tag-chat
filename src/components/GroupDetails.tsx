@@ -424,24 +424,17 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-xs font-bold text-[#181d1a]">
-                          {participant.name} {isMe && "(You)"}
+                          {participant.name} {isMe && "(You)"}{" "}
+                          <span
+                            className={`font-semibold ${
+                              isUserOnline ? "text-emerald-600" : "text-[#788078]"
+                            }`}
+                          >
+                            ({isUserOnline ? "Online" : "Offline"})
+                          </span>
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px]">
-                        <span
-                          className={`font-semibold ${
-                            isUserOnline ? "text-emerald-600" : "text-[#788078]"
-                          }`}
-                        >
-                          {isUserOnline ? "Online" : "Offline"}
-                        </span>
-                        {participant.phone && (
-                          <>
-                            <span className="text-[#a0a6a0]">•</span>
-                            <span className="truncate text-[#788078]">{participant.phone}</span>
-                          </>
-                        )}
-                      </div>
+                      <p className="truncate text-[10px] text-[#788078]">{participant.phone}</p>
                     </div>
                   </div>
 

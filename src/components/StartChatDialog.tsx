@@ -199,7 +199,16 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold text-[#1a1f1c] truncate">{u.name}</p>
+                        <p className="text-xs font-bold text-[#1a1f1c] truncate">
+                          {u.name}{" "}
+                          <span
+                            className={`font-semibold ${
+                              isUserOnline ? "text-emerald-600" : "text-[#7a8179]"
+                            }`}
+                          >
+                            ({isUserOnline ? "Online" : "Offline"})
+                          </span>
+                        </p>
                         {isMe && (
                           <span className="rounded bg-black/5 px-1 py-0.2 text-[9px] text-[#7a8179]">
                             (You)
@@ -218,19 +227,8 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
                       You
                     </span>
                   ) : (
-                    <span
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        isUserOnline
-                          ? "bg-emerald-100/80 text-[#1f5f51]"
-                          : "bg-black/5 text-[#7c837c]"
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isUserOnline ? "bg-emerald-500" : "bg-gray-400"
-                        }`}
-                      />
-                      {isUserOnline ? "Online" : "Offline"}
+                    <span className="rounded-lg bg-[#2f7d68]/10 px-2.5 py-1 text-xs font-semibold text-[#2f7d68] hover:bg-[#2f7d68] hover:text-white transition">
+                      Chat →
                     </span>
                   )}
                 </button>
