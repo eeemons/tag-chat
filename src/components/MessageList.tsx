@@ -167,9 +167,14 @@ export function MessageList({ conversation }: MessageListProps) {
     }
   };
 
-  // Find sender name for group chats
+  // Find sender name for direct and group chats
   const getSenderName = (senderId: string) => {
-    if (conversation.type !== "group") return "";
+    if (conversation.type === "direct") {
+      if (conversation.participant && conversation.participant._id === senderId) {
+        return conversation.participant.name;
+      }
+      return conversation.participant?.name || "User";
+    }
     const member = conversation.participants?.find((p) => p._id === senderId);
     return member?.name || "Unknown member";
   };
@@ -191,15 +196,15 @@ export function MessageList({ conversation }: MessageListProps) {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-3.5 md:px-6"
+        className="flex-1 overflow-y-auto px-3.5 pt-3 pb-8 space-y-2.5 sm:px-5 sm:space-y-3"
       >
         {/* Load more button */}
         {hasMore && (
-          <div className="flex justify-center pb-2">
+          <div className="flex justify-center pb-1">
             <button
               onClick={handleLoadMore}
               disabled={isLoadingMore}
-              className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium shadow-xs disabled:opacity-50 transition ${
+              className={`flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-medium shadow-xs disabled:opacity-50 transition ${
                 currentBackground.isDark
                   ? "bg-[#1d2420] border-white/10 text-white/90 hover:bg-[#252e29]"
                   : "bg-white border-black/10 text-[#4a524c] hover:bg-[#f2efe9]"
@@ -218,11 +223,11 @@ export function MessageList({ conversation }: MessageListProps) {
               className={`flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full border shadow-xs ${
                 currentBackground.isDark
                   ? "bg-[#1d2420] text-white/90 border-white/10"
-                  : "bg-white text-[#7a8179] border-black/5"
+                  : "bg-white text-[#525a54] border-black/10"
               }`}
             >
               <Loader2 className="h-4 w-4 animate-spin text-[#2f7d68]" />
-              Loading conversation history...
+              <span>Loading messages...</span>
             </div>
           </div>
         )}
@@ -230,34 +235,33 @@ export function MessageList({ conversation }: MessageListProps) {
         {/* Empty state */}
         {!isLoading && messages.length === 0 && (
           <div className="flex h-full min-h-48 flex-col items-center justify-center text-center">
-            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-gradient-to-br from-[#2f7d68]/15 to-emerald-100 text-[#2f7d68] mb-3 shadow-inner">
-              💬
+            <div
+              className={`rounded-2xl border p-6 text-center max-w-sm shadow-xs ${
+                currentBackground.isDark
+                  ? "border-white/10 bg-[#1e2521]/90 text-white"
+                  : "border-black/5 bg-white/90 text-[#1f2421]"
+              }`}
+            >
+              <p className="text-sm font-semibold">No messages yet</p>
+              <p
+                className={`mt-1 text-xs ${
+                  currentBackground.isDark ? "text-white/60" : "text-[#717871]"
+                }`}
+              >
+                Say hello to get this conversation rolling! 👋
+              </p>
             </div>
-            <p
-              className={`font-semibold text-sm ${
-                currentBackground.isDark ? "text-white" : "text-[#2d332f]"
-              }`}
-            >
-              No messages yet
-            </p>
-            <p
-              className={`text-xs mt-1 max-w-xs leading-relaxed ${
-                currentBackground.isDark ? "text-white/70" : "text-[#767d75]"
-              }`}
-            >
-              Say hello or send a message below to begin this conversation.
-            </p>
           </div>
         )}
 
         {/* Message Items */}
         {messages.map((message: Message, index: number) => {
           const isMe = message.sender === currentUser?._id;
-          const senderName = getSenderName(message.sender);
+          const senderName = isMe ? "You" : getSenderName(message.sender);
           const isTapped = tappedMessageId === message._id;
           const receipt = readReceipts[message._id];
-          const isSeen = Boolean(receipt?.seen || isTapped);
-          const seenTime = receipt?.seenAt ? formatTime(receipt.seenAt) : formatTime(message.createdAt);
+          const isSeen = receipt?.seen || false;
+          const seenTime = receipt?.seenAt ? formatTime(receipt.seenAt) : "";
 
           return (
             <div
@@ -266,24 +270,34 @@ export function MessageList({ conversation }: MessageListProps) {
             >
               {/* Sender Name in Group Chats */}
               {!isMe && conversation.type === "group" && (
-                <span className="mb-1 text-[11px] font-bold text-[#454e48] ml-2 flex items-center gap-1.5">
-                  <span className={`inline-block h-2 w-2 rounded-full bg-gradient-to-r ${getAvatarGradient(senderName)}`} />
+                <span className="mb-0.5 text-[10.5px] font-bold text-[#454e48] ml-2 flex items-center gap-1.5">
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full bg-gradient-to-r ${getAvatarGradient(senderName)}`} />
                   {senderName}
                 </span>
               )}
 
               <div
-                className={`flex max-w-[85%] items-end gap-2 md:max-w-[75%] ${
+                className={`flex max-w-[85%] items-end gap-1.5 md:max-w-[75%] ${
                   isMe ? "flex-row-reverse" : "flex-row"
                 }`}
               >
                 {!isMe && (
-                  <div
-                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${getAvatarGradient(
-                      senderName || message.sender,
-                    )} text-[11px] font-bold shadow-xs`}
-                  >
-                    {initials(senderName || "U")}
+                  <div className="flex flex-col items-center shrink-0 w-8.5">
+                    <div
+                      className={`grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br ${getAvatarGradient(
+                        senderName,
+                      )} text-[9px] font-bold text-white shadow-2xs`}
+                    >
+                      {initials(senderName || "U")}
+                    </div>
+                    <span
+                      className={`mt-0.5 text-[8.5px] leading-tight font-medium text-center truncate max-w-[36px] ${
+                        currentBackground.isDark ? "text-white/60" : "text-[#737b74]"
+                      }`}
+                      title={senderName}
+                    >
+                      {senderName.split(" ")[0]}
+                    </span>
                   </div>
                 )}
 
@@ -295,7 +309,7 @@ export function MessageList({ conversation }: MessageListProps) {
                     return (
                       <div
                         onClick={() => handleToggleMessageDetails(message._id)}
-                        className={`cursor-pointer rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all shadow-xs ${
+                        className={`cursor-pointer rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm leading-snug transition-all shadow-xs ${
                           isMe
                             ? "rounded-br-xs bg-gradient-to-br from-[#1d6b59] to-[#124d3f] text-white hover:brightness-105"
                             : currentBackground.isDark
@@ -304,24 +318,24 @@ export function MessageList({ conversation }: MessageListProps) {
                         }`}
                       >
                         <p
-                          className={`whitespace-pre-wrap break-words ${
-                            isBigEmoji ? "text-2xl sm:text-3xl py-1" : ""
+                          className={`whitespace-pre-wrap break-words leading-snug ${
+                            isBigEmoji ? "text-2xl sm:text-3xl py-0.5" : ""
                           }`}
                         >
                           {parsedText}
                         </p>
                         <div
-                          className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] ${
-                            isMe ? "text-white/80" : currentBackground.isDark ? "text-white/60" : "text-[#889087]"
+                          className={`mt-0.5 flex items-center justify-end gap-1 text-[9.5px] ${
+                            isMe ? "text-white/75" : currentBackground.isDark ? "text-white/55" : "text-[#889087]"
                           }`}
                         >
                           <span>{formatTime(message.createdAt)}</span>
                           {isMe && (
                             <span title={isSeen ? `Seen at ${seenTime}` : "Delivered"}>
                               {isSeen ? (
-                                <CheckCheck className="h-3.5 w-3.5 text-emerald-200 stroke-[2.5]" />
+                                <CheckCheck className="h-3 w-3 text-emerald-200 stroke-[2.5]" />
                               ) : (
-                                <Check className="h-3.5 w-3.5 text-white/70" />
+                                <Check className="h-3 w-3 text-white/70" />
                               )}
                             </span>
                           )}
@@ -330,7 +344,7 @@ export function MessageList({ conversation }: MessageListProps) {
                     );
                   })()}
 
-                  {/* Tapped Detail Inspector (Seen / Unseen Status & Timestamp) */}
+                  {/* Tapped Detail Inspector */}
                   {isTapped && (
                     <div
                       className={`mt-1 animate-in fade-in zoom-in-95 duration-150 rounded-xl px-2.5 py-1 text-[10px] font-medium shadow-2xs border ${
@@ -359,17 +373,17 @@ export function MessageList({ conversation }: MessageListProps) {
           );
         })}
 
-        {/* Real-time Typing Bubble */}
+        {/* Real-time Typing Bubble (Sleek Compact Capsule) */}
         {activeTypers.length > 0 && (
-          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 ml-1 py-1">
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white text-[10px] font-bold shadow-xs">
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 ml-1 my-1.5">
+            <div className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 text-white text-[9px] font-bold shadow-xs">
               {initials(activeTypers[0].userName)}
             </div>
             <div
-              className={`flex items-center gap-2 rounded-2xl rounded-bl-xs border px-3.5 py-2 shadow-xs ${
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 shadow-2xs ${
                 currentBackground.isDark
-                  ? "bg-[#1e2521] border-white/10 text-white"
-                  : "bg-white border-black/5 text-[#5c645e]"
+                  ? "bg-[#1e2521]/95 border-white/10 text-white"
+                  : "bg-white/95 border-black/10 text-[#49504a]"
               }`}
             >
               <div className="flex items-center gap-1">
@@ -379,7 +393,7 @@ export function MessageList({ conversation }: MessageListProps) {
               </div>
               <span
                 className={`text-[11px] font-medium ${
-                  currentBackground.isDark ? "text-white/80" : "text-[#5c645e]"
+                  currentBackground.isDark ? "text-white/80" : "text-[#49504a]"
                 }`}
               >
                 {activeTypers.length === 1
@@ -390,7 +404,7 @@ export function MessageList({ conversation }: MessageListProps) {
           </div>
         )}
 
-        <div ref={bottomRef} className="h-px" />
+        <div ref={bottomRef} className="h-3 w-full shrink-0" />
       </div>
 
       {/* Floating Smart Scroll-to-bottom button */}
