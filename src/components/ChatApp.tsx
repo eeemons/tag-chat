@@ -207,6 +207,12 @@ export function ChatApp() {
       onPresence: (payload) => {
         dispatch(userPresenceChanged(payload));
       },
+      onProfileUpdate: (payload) => {
+        dispatch(userProfileUpdated(payload));
+      },
+      onConversationUpdate: (conversation) => {
+        dispatch(conversationUpdated(conversation));
+      },
     });
 
     return () => {

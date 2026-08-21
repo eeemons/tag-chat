@@ -79,10 +79,10 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
   const isAdmin = Boolean(isGroup && user && selected?.admins?.includes(user._id));
 
   return (
-    <main className="h-screen h-[100dvh] w-full overflow-hidden bg-[#faf8f5] text-[#1d211f]">
-      <div className="grid h-full w-full overflow-hidden bg-[#faf8f5] lg:grid-cols-[340px_minmax(0,1fr)]">
+    <main className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#faf8f5] text-[#1d211f]">
+      <div className="grid h-full w-full min-h-0 overflow-hidden bg-[#faf8f5] lg:grid-cols-[340px_minmax(0,1fr)]">
         {/* Desktop Sidebar (Always visible on desktop) */}
-        <aside className="hidden border-r border-black/10 bg-[#fbfaf6] lg:block">
+        <aside className="hidden border-r border-black/10 bg-[#fbfaf6] lg:block h-full overflow-hidden">
           <ConversationSidebar
             onCreateGroup={() => setGroupOpen(true)}
             onStartChat={() => setStartOpen(true)}
@@ -92,9 +92,9 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
         </aside>
 
         {/* Main Conversation Area */}
-        <section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+        <section className="flex flex-col min-h-0 h-full overflow-hidden">
           {/* Main Unified Top Header Bar */}
-          <header className="flex min-h-16 items-center justify-between gap-3 border-b border-black/10 bg-white/85 px-4 backdrop-blur md:px-5 shadow-2xs">
+          <header className="sticky top-0 z-30 shrink-0 flex h-16 min-h-16 items-center justify-between gap-3 border-b border-black/10 bg-white/95 px-4 backdrop-blur md:px-5 shadow-2xs">
             <div className="flex items-center gap-3 min-w-0">
               {/* Mobile Sidebar Hamburger Toggle */}
               <button
@@ -214,9 +214,9 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
             </div>
           </header>
 
-          <div className="grid min-h-0 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_auto] overflow-hidden">
             {/* Conversation View */}
-            <div className="min-h-0 flex flex-col">
+            <div className="min-h-0 h-full flex flex-col flex-1 overflow-hidden">
               <ChatPanel onToggleMobileSidebar={() => setMobileDrawerOpen(true)} />
             </div>
 

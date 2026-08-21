@@ -26,6 +26,7 @@ import {
 } from "@/features/chat/chatSlice";
 import { initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
+import { emitConversationUpdate } from "@/lib/socket";
 import type { GroupConversation, User } from "@/lib/types";
 
 interface GroupDetailsProps {
@@ -104,9 +105,10 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
 
     try {
       setProcessingState({ type: "rename" });
-      await dispatch(
+      const updated = await dispatch(
         renameGroup({ conversationId: conversation._id, name: nameInput.trim() }),
       ).unwrap();
+      emitConversationUpdate(updated);
       setIsEditingName(false);
     } catch {
       // Handled in state
@@ -123,7 +125,8 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
       setProcessingState({ type: "promote", userId });
       setConfirmModal(null);
       try {
-        await dispatch(promoteAdmin({ conversationId: conversation._id, userId })).unwrap();
+        const updated = await dispatch(promoteAdmin({ conversationId: conversation._id, userId })).unwrap();
+        emitConversationUpdate(updated);
       } catch {
         // Handled in state
       } finally {
@@ -134,7 +137,8 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
       setProcessingState({ type: "remove", userId });
       setConfirmModal(null);
       try {
-        await dispatch(removeParticipant({ conversationId: conversation._id, userId })).unwrap();
+        const updated = await dispatch(removeParticipant({ conversationId: conversation._id, userId })).unwrap();
+        emitConversationUpdate(updated);
       } catch {
         // Handled in state
       } finally {
@@ -145,12 +149,13 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
       setProcessingState({ type: "leave" });
       setConfirmModal(null);
       try {
-        await dispatch(
+        const updated = await dispatch(
           removeParticipant({
             conversationId: conversation._id,
             userId: currentUser._id,
           }),
         ).unwrap();
+        emitConversationUpdate(updated);
         dispatch(selectConversation(null));
         onClose();
       } catch {
@@ -172,12 +177,13 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
     if (selectedToAdd.length === 0 || isActionLoading) return;
     try {
       setProcessingState({ type: "add" });
-      await dispatch(
+      const updated = await dispatch(
         addParticipants({
           conversationId: conversation._id,
           userIds: selectedToAdd.map((u) => u._id),
         }),
       ).unwrap();
+      emitConversationUpdate(updated);
       handleCloseAddMembers();
     } catch {
       // Handled in state

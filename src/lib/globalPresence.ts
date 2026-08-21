@@ -1,11 +1,14 @@
 "use client";
 
 import mqtt, { type MqttClient } from "mqtt";
-import type { TypingPayload, PresencePayload } from "@/lib/socket";
+import type { TypingPayload, PresencePayload, ProfileUpdatePayload } from "@/lib/socket";
+import type { Conversation } from "@/lib/types";
 
 type GlobalPresenceListener = {
   onTyping?: (payload: TypingPayload) => void;
   onPresence?: (payload: PresencePayload) => void;
+  onProfileUpdate?: (payload: ProfileUpdatePayload) => void;
+  onConversationUpdate?: (conversation: Conversation) => void;
 };
 
 let mqttClient: MqttClient | null = null;
@@ -32,9 +35,11 @@ export function initGlobalPresence(currentUserId?: string) {
     });
 
     mqttClient.on("connect", () => {
-      // Subscribe to all Tag Chat typing and presence channels
+      // Subscribe to all Tag Chat channels: typing, presence, profile updates & conversation updates
       mqttClient?.subscribe("tagchat/v2/typing/#", { qos: 0 });
       mqttClient?.subscribe("tagchat/v2/presence/#", { qos: 0 });
+      mqttClient?.subscribe("tagchat/v2/profile/#", { qos: 0 });
+      mqttClient?.subscribe("tagchat/v2/conversation/#", { qos: 0 });
     });
 
     mqttClient.on("message", (topic, messageBuffer) => {
@@ -54,6 +59,22 @@ export function initGlobalPresence(currentUserId?: string) {
           listeners.forEach((l) => {
             try {
               l.onPresence?.(data as PresencePayload);
+            } catch {
+              // Ignore
+            }
+          });
+        } else if (topic.startsWith("tagchat/v2/profile/") && data) {
+          listeners.forEach((l) => {
+            try {
+              l.onProfileUpdate?.(data as ProfileUpdatePayload);
+            } catch {
+              // Ignore
+            }
+          });
+        } else if (topic.startsWith("tagchat/v2/conversation/") && data) {
+          listeners.forEach((l) => {
+            try {
+              l.onConversationUpdate?.(data as Conversation);
             } catch {
               // Ignore
             }
@@ -105,6 +126,39 @@ export function broadcastGlobalPresence(userId: string, isOnline: boolean) {
     mqttClient?.publish(
       `tagchat/v2/presence/${userId}`,
       JSON.stringify(payload),
+      { qos: 0 },
+    );
+  } catch {
+    // Publish error ignored
+  }
+}
+
+export function broadcastGlobalProfileUpdate(userId: string, name: string, phone?: string) {
+  if (!mqttClient || !mqttClient.connected) {
+    initGlobalPresence(userId);
+  }
+
+  const payload: ProfileUpdatePayload = { userId, name, phone };
+  try {
+    mqttClient?.publish(
+      `tagchat/v2/profile/${userId}`,
+      JSON.stringify(payload),
+      { qos: 0 },
+    );
+  } catch {
+    // Publish error ignored
+  }
+}
+
+export function broadcastGlobalConversationUpdate(conversation: Conversation) {
+  if (!mqttClient || !mqttClient.connected) {
+    initGlobalPresence(conversation._id);
+  }
+
+  try {
+    mqttClient?.publish(
+      `tagchat/v2/conversation/${conversation._id}`,
+      JSON.stringify(conversation),
       { qos: 0 },
     );
   } catch {

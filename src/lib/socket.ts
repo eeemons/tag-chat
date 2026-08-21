@@ -1,7 +1,12 @@
 import { io, type Socket } from "socket.io-client";
 import { SOCKET_URL } from "@/lib/api";
 import type { Conversation, Message } from "@/lib/types";
-import { broadcastGlobalTyping, broadcastGlobalPresence } from "@/lib/globalPresence";
+import {
+  broadcastGlobalTyping,
+  broadcastGlobalPresence,
+  broadcastGlobalProfileUpdate,
+  broadcastGlobalConversationUpdate,
+} from "@/lib/globalPresence";
 
 export type TypingPayload = {
   conversationId: string;
@@ -302,7 +307,10 @@ export function emitPresence(userId: string, isOnline: boolean) {
 export function emitProfileUpdate(userId: string, name: string, phone?: string) {
   const payload: ProfileUpdatePayload = { userId, name, phone };
 
-  // 1. Post to Next.js Real-Time Event Hub
+  // 1. Global PubSub broadcast (Works across Internet / Netlify / Vercel serverless)
+  broadcastGlobalProfileUpdate(userId, name, phone);
+
+  // 2. Post to Next.js Real-Time Event Hub
   if (typeof window !== "undefined") {
     fetch("/api/profile", {
       method: "POST",
@@ -313,7 +321,7 @@ export function emitProfileUpdate(userId: string, name: string, phone?: string) 
     });
   }
 
-  // 2. Broadcast over local channel
+  // 3. Broadcast over local channel
   if (broadcastChannel) {
     try {
       broadcastChannel.postMessage({ type: "profile_updated", payload });
@@ -322,10 +330,24 @@ export function emitProfileUpdate(userId: string, name: string, phone?: string) 
     }
   }
 
-  // 3. Emit over WebSocket
+  // 4. Emit over WebSocket
   if (activeSocket && activeSocket.connected) {
     activeSocket.emit("user:update", payload);
     activeSocket.emit("profile:updated", payload);
+  }
+}
+
+export function emitConversationUpdate(conversation: Conversation) {
+  // 1. Global PubSub broadcast
+  broadcastGlobalConversationUpdate(conversation);
+
+  // 2. Broadcast over local channel
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ type: "conversation:updated", payload: conversation });
+    } catch {
+      // Ignore
+    }
   }
 }
 
