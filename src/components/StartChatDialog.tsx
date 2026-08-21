@@ -90,8 +90,8 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-backdrop-in">
+      <div className="relative w-full max-w-md rounded-3xl border border-black/10 bg-white p-6 shadow-2xl animate-modal-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">

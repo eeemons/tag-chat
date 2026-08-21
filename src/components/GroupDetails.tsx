@@ -24,6 +24,7 @@ import {
   selectConversation,
 } from "@/features/chat/chatSlice";
 import { initials } from "@/lib/format";
+import { getAvatarGradient } from "@/lib/colors";
 import type { GroupConversation, User } from "@/lib/types";
 
 interface GroupDetailsProps {
@@ -155,17 +156,17 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
     }
   };
 
-  return (
-    <aside className="w-80 shrink-0 border-l border-black/10 bg-[#fbfaf6] flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200">
+  const content = (
+    <div className="flex h-full flex-col overflow-hidden bg-[#fbfaf6]">
       {/* Drawer Header */}
-      <div className="flex items-center justify-between border-b border-black/10 p-4 bg-white/50">
+      <div className="flex items-center justify-between border-b border-black/10 p-4 bg-white/60 backdrop-blur">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-[#2f7d68]" />
-          <h3 className="text-sm font-semibold text-[#181d1a]">Group Information</h3>
+          <h3 className="text-sm font-bold text-[#181d1a]">Group Information</h3>
         </div>
         <button
           onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded-lg text-[#7c837c] hover:bg-black/5 hover:text-[#181d1a] transition"
+          className="grid h-8 w-8 place-items-center rounded-xl text-[#7c837c] hover:bg-black/5 hover:text-[#181d1a] transition"
         >
           <X className="h-4 w-4" />
         </button>
@@ -173,14 +174,14 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {actionError && (
-          <div className="rounded-lg bg-red-50 p-2.5 text-xs text-red-600">
+          <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-200">
             {actionError}
           </div>
         )}
 
-        {/* Group Name Section */}
+        {/* Group Avatar & Name Section */}
         <div className="text-center pb-4 border-b border-black/10">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#2f7d68]/15 text-[#2f7d68] mb-3">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#2f7d68]/20 to-teal-100 text-[#2f7d68] mb-3 shadow-inner">
             <Users className="h-8 w-8" />
           </div>
 
@@ -191,20 +192,20 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 autoFocus
-                className="w-full rounded-lg border border-black/15 bg-white px-2.5 py-1 text-sm font-semibold text-[#1c221e] outline-none focus:border-[#2f7d68]"
+                className="w-full rounded-xl border border-black/15 bg-white px-3 py-1.5 text-sm font-semibold text-[#1c221e] outline-none focus:border-[#2f7d68]"
               />
               <button
                 type="submit"
-                className="grid h-7 w-7 place-items-center rounded-lg bg-[#1f5f51] text-white"
+                className="grid h-8 w-8 place-items-center rounded-xl bg-[#1f5f51] text-white shadow-xs"
               >
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => setIsEditingName(false)}
-                className="grid h-7 w-7 place-items-center rounded-lg bg-black/5 text-[#5e665e]"
+                className="grid h-8 w-8 place-items-center rounded-xl bg-black/5 text-[#5e665e]"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </form>
           ) : (
@@ -230,13 +231,13 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
         {/* Participants Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-[#485049] uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-[#485049] uppercase tracking-wider">
               Members
             </h4>
             {isAdmin && !showAddMembers && (
               <button
                 onClick={() => setShowAddMembers(true)}
-                className="flex items-center gap-1 text-xs font-medium text-[#2f7d68] hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-[#2f7d68] hover:underline"
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span>Add</span>
@@ -246,12 +247,12 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
 
           {/* Add Members Inline Panel */}
           {showAddMembers && (
-            <div className="mb-4 rounded-xl border border-black/10 bg-white p-3 shadow-xs space-y-3">
+            <div className="mb-4 rounded-2xl border border-black/10 bg-white p-3.5 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#2f7d68]">Add new members</span>
+                <span className="text-xs font-bold text-[#2f7d68]">Add new members</span>
                 <button
                   onClick={handleCloseAddMembers}
-                  className="text-xs text-[#788078] hover:text-black"
+                  className="text-xs text-[#788078] hover:text-black font-medium"
                 >
                   Cancel
                 </button>
@@ -264,7 +265,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search user by name..."
-                  className="w-full rounded-lg border border-black/10 bg-[#faf8f5] py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#2f7d68]"
+                  className="w-full rounded-xl border border-black/10 bg-[#faf8f5] py-2 pl-8 pr-3 text-xs outline-none focus:border-[#2f7d68]"
                 />
               </div>
 
@@ -272,13 +273,13 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
               <div className="max-h-36 overflow-y-auto space-y-1">
                 {searchStatus === "loading" && (
                   <div className="py-2 text-center text-xs text-[#788078]">
-                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                    <Loader2 className="inline h-3 w-3 animate-spin mr-1 text-[#2f7d68]" />
                     Searching...
                   </div>
                 )}
 
                 {searchResults.map((u) => {
-                  const isAlreadyMember = conversation.participants.some((p) => p._id === u._id);
+                  const isAlreadyMember = conversation.participants?.some((p) => p._id === u._id);
                   const isSelected = selectedToAdd.some((sel) => sel._id === u._id);
 
                   return (
@@ -294,7 +295,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                           setSelectedToAdd([...selectedToAdd, u]);
                         }
                       }}
-                      className={`w-full flex items-center justify-between p-2 rounded-lg text-xs text-left transition ${
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-xs text-left transition ${
                         isAlreadyMember
                           ? "bg-black/[0.02] opacity-60 cursor-default"
                           : isSelected
@@ -303,17 +304,17 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                       }`}
                     >
                       <div>
-                        <span className="font-medium text-[#1c221e]">{u.name}</span>
+                        <span className="font-semibold text-[#1c221e]">{u.name}</span>
                         <p className="text-[10px] text-[#788078]">{u.phone}</p>
                       </div>
 
                       {isAlreadyMember ? (
-                        <span className="text-[10px] text-[#788078] bg-black/5 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-[#788078] bg-black/5 px-1.5 py-0.5 rounded-md">
                           In group
                         </span>
                       ) : (
                         <div
-                          className={`grid h-4 w-4 place-items-center rounded border ${
+                          className={`grid h-4 w-4 place-items-center rounded-md border ${
                             isSelected
                               ? "bg-[#2f7d68] border-[#2f7d68] text-white"
                               : "border-black/20"
@@ -331,7 +332,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                 <button
                   onClick={handleAddSelectedParticipants}
                   disabled={isActionLoading}
-                  className="w-full rounded-lg bg-[#1f5f51] py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#184c41] transition"
+                  className="w-full rounded-xl bg-gradient-to-r from-[#216d5b] to-[#144f41] py-2 text-xs font-bold text-white shadow-xs hover:scale-101 active:scale-99 transition"
                 >
                   {isActionLoading ? "Adding..." : `Add ${selectedToAdd.length} user(s)`}
                 </button>
@@ -340,7 +341,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
           )}
 
           {/* Members List */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {conversation.participants?.map((participant: User) => {
               const isMemberAdmin = conversation.admins?.includes(participant._id);
               const isMe = participant._id === currentUser?._id;
@@ -348,15 +349,19 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
               return (
                 <div
                   key={participant._id}
-                  className="flex items-center justify-between rounded-xl p-2 bg-white/70 border border-black/5"
+                  className="flex items-center justify-between rounded-2xl p-2.5 bg-white/80 border border-black/5 shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#e8e4dc] text-xs font-bold text-[#3e453f]">
+                    <div
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold shadow-xs bg-gradient-to-br ${getAvatarGradient(
+                        participant.name,
+                      )}`}
+                    >
                       {initials(participant.name)}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="truncate text-xs font-semibold text-[#181d1a]">
+                        <p className="truncate text-xs font-bold text-[#181d1a]">
                           {participant.name} {isMe && "(You)"}
                         </p>
                       </div>
@@ -366,7 +371,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
 
                   <div className="flex items-center gap-1">
                     {isMemberAdmin && (
-                      <span className="flex items-center gap-0.5 rounded bg-[#2f7d68]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#2f7d68]">
+                      <span className="flex items-center gap-0.5 rounded-full bg-gradient-to-r from-[#2f7d68]/15 to-emerald-100 px-2 py-0.5 text-[9px] font-bold text-[#1f5f51]">
                         <Shield className="h-2.5 w-2.5" />
                         Admin
                       </span>
@@ -377,9 +382,9 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                         onClick={() => handlePromote(participant._id)}
                         disabled={isActionLoading}
                         title="Promote to Admin"
-                        className="grid h-6 w-6 place-items-center rounded text-[#788078] hover:bg-black/5 hover:text-[#2f7d68] transition"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-black/5 hover:text-[#2f7d68] transition"
                       >
-                        <Shield className="h-3 w-3" />
+                        <Shield className="h-3.5 w-3.5" />
                       </button>
                     )}
 
@@ -388,9 +393,9 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                         onClick={() => handleRemove(participant._id)}
                         disabled={isActionLoading}
                         title="Remove member"
-                        className="grid h-6 w-6 place-items-center rounded text-[#788078] hover:bg-red-50 hover:text-red-600 transition"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[#788078] hover:bg-red-50 hover:text-red-600 transition"
                       >
-                        <UserMinus className="h-3 w-3" />
+                        <UserMinus className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
@@ -405,13 +410,33 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
           <button
             onClick={handleLeaveGroup}
             disabled={isActionLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50/50 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50/60 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition shadow-2xs"
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>Leave Group</span>
           </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Drawer Backdrop & Sliding Modal */}
+      <div className="fixed inset-0 z-50 flex justify-end lg:hidden">
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/45 backdrop-blur-xs animate-backdrop-in cursor-pointer"
+        />
+        <aside className="relative z-10 w-[85%] max-w-sm h-full border-l border-black/10 bg-[#fbfaf6] shadow-2xl animate-drawer-right">
+          {content}
+        </aside>
+      </div>
+
+      {/* Desktop Inline Sidebar (Docked) */}
+      <aside className="hidden lg:flex w-80 shrink-0 border-l border-black/10 bg-[#fbfaf6] flex-col h-full overflow-hidden animate-drawer-right">
+        {content}
+      </aside>
+    </>
   );
 }

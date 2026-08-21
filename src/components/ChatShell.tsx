@@ -130,15 +130,15 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
 
       {/* Mobile Slide-Out Drawer for Conversation Sidebar */}
       {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex lg:hidden">
           {/* Backdrop */}
           <div
             onClick={() => setMobileDrawerOpen(false)}
-            className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/45 backdrop-blur-xs animate-backdrop-in cursor-pointer"
           />
 
           {/* Drawer content */}
-          <div className="relative z-10 flex w-[85%] max-w-sm flex-col bg-[#fbfaf6] shadow-2xl animate-in slide-in-from-left duration-250 border-r border-black/10">
+          <div className="relative z-10 flex w-[85%] max-w-sm flex-col bg-[#fbfaf6] shadow-2xl animate-drawer-left border-r border-black/10">
             {/* Drawer top close button */}
             <div className="flex items-center justify-between border-b border-black/10 p-3 bg-white/50">
               <span className="text-xs font-bold text-[#1f5f51] uppercase tracking-wider">

@@ -16,8 +16,8 @@ export function LogoutConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-backdrop-in">
+      <div className="relative w-full max-w-sm rounded-3xl border border-black/10 bg-white p-6 shadow-2xl animate-modal-in">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-lg text-[#7c837c] hover:bg-black/5 hover:text-[#1a1f1c] transition"
