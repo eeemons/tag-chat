@@ -41,6 +41,7 @@ type ChatState = {
   socketError: string | null;
   typingByConversation: Record<string, TypingUser[]>;
   readReceipts: Record<string, ReadReceipt>;
+  unreadByConversation: Record<string, number>;
 };
 
 const initialState: ChatState = {
@@ -58,6 +59,7 @@ const initialState: ChatState = {
   socketError: null,
   typingByConversation: {},
   readReceipts: {},
+  unreadByConversation: {},
 };
 
 function tokenFromState(state: RootState) {
@@ -224,6 +226,12 @@ const chatSlice = createSlice({
   reducers: {
     selectConversation(state, action: PayloadAction<string | null>) {
       state.selectedConversationId = action.payload;
+      if (action.payload) {
+        state.unreadByConversation[action.payload] = 0;
+      }
+    },
+    clearUnread(state, action: PayloadAction<string>) {
+      state.unreadByConversation[action.payload] = 0;
     },
     clearSearch(state) {
       state.searchResults = [];
@@ -280,6 +288,12 @@ const chatSlice = createSlice({
       bucket.items = mergeMessages(bucket.items, [message]);
       bucket.status = "succeeded";
       state.messagesByConversation[message.conversation] = bucket;
+
+      // Increment unread count if user is not currently focused on this conversation
+      if (state.selectedConversationId !== message.conversation) {
+        state.unreadByConversation[message.conversation] =
+          (state.unreadByConversation[message.conversation] || 0) + 1;
+      }
 
       const conversation = state.conversations.find(
         (item) => item._id === message.conversation,
@@ -342,6 +356,7 @@ const chatSlice = createSlice({
       .addCase(startDirectConversation.fulfilled, (state, action) => {
         state.actionStatus = "idle";
         state.selectedConversationId = action.payload;
+        state.unreadByConversation[action.payload] = 0;
       })
       .addCase(startDirectConversation.rejected, (state, action) => {
         state.actionStatus = "error";
@@ -395,6 +410,7 @@ const chatSlice = createSlice({
         state.actionStatus = "idle";
         upsertConversation(state, action.payload);
         state.selectedConversationId = action.payload._id;
+        state.unreadByConversation[action.payload._id] = 0;
       })
       .addCase(createGroup.rejected, (state, action) => {
         state.actionStatus = "error";
@@ -445,6 +461,7 @@ const chatSlice = createSlice({
 
 export const {
   selectConversation,
+  clearUnread,
   clearSearch,
   clearActionError,
   setSocketConnected,

@@ -29,10 +29,22 @@ export function ConversationSidebar({
 }: ConversationSidebarProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
-  const { conversations, selectedConversationId, conversationsStatus } =
-    useAppSelector((state) => state.chat);
+  const {
+    conversations,
+    selectedConversationId,
+    conversationsStatus,
+    unreadByConversation,
+  } = useAppSelector((state) => state.chat);
   const [filterQuery, setFilterQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // Total unread messages across all conversations
+  const totalUnread = useMemo(() => {
+    return Object.values(unreadByConversation || {}).reduce(
+      (acc, count) => acc + (count || 0),
+      0,
+    );
+  }, [unreadByConversation]);
 
   // Debounce filter query
   useEffect(() => {
@@ -67,11 +79,23 @@ export function ConversationSidebar({
       <div className="border-b border-black/10 p-4 bg-white/40">
         <div className="flex items-center justify-between gap-2 mb-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#216d5b] to-[#124d3f] text-white shadow-sm shadow-[#216d5b]/30">
+            <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#216d5b] to-[#124d3f] text-white shadow-sm shadow-[#216d5b]/30">
               <MessageSquare className="h-4 w-4" />
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-extrabold text-white ring-2 ring-white">
+                  {totalUnread > 9 ? "9+" : totalUnread}
+                </span>
+              )}
             </div>
             <div>
-              <h1 className="text-base font-bold text-[#181d1a]">Messages</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-base font-bold text-[#181d1a]">Messages</h1>
+                {totalUnread > 0 && (
+                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-extrabold text-[#175244]">
+                    {totalUnread} new
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] text-[#717871]">Real-time discussions</p>
             </div>
           </div>
@@ -145,6 +169,8 @@ export function ConversationSidebar({
           const title = conversationTitle(conv, currentUser);
           const lastMsg = lastMessageText(conv.lastMessage);
           const time = formatDateTime(conversationTimestamp(conv));
+          const unreadCount = unreadByConversation[conv._id] || 0;
+          const hasUnread = unreadCount > 0 && !isSelected;
 
           return (
             <button
@@ -153,58 +179,91 @@ export function ConversationSidebar({
               className={`w-full text-left rounded-2xl p-3 transition-all flex items-start gap-3 border ${
                 isSelected
                   ? "bg-gradient-to-r from-[#216d5b] to-[#155345] text-white shadow-sm shadow-[#216d5b]/25 border-transparent"
+                  : hasUnread
+                  ? "bg-emerald-50/70 hover:bg-emerald-50 border-emerald-200/80 text-[#1c221e] shadow-xs"
                   : "bg-white/60 hover:bg-white border-black/5 hover:border-black/10 text-[#1c221e]"
               }`}
             >
               {/* Avatar with colorful gradient */}
-              <div
-                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xs font-bold shadow-xs ${
-                  isSelected
-                    ? "bg-white/20 text-white"
-                    : `bg-gradient-to-br ${getAvatarGradient(title)}`
-                }`}
-              >
-                {isGroup ? <Users className="h-4 w-4" /> : initials(title)}
+              <div className="relative shrink-0">
+                <div
+                  className={`grid h-10 w-10 place-items-center rounded-xl text-xs font-bold shadow-xs ${
+                    isSelected
+                      ? "bg-white/20 text-white"
+                      : `bg-gradient-to-br ${getAvatarGradient(title)}`
+                  }`}
+                >
+                  {isGroup ? <Users className="h-4 w-4" /> : initials(title)}
+                </div>
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+                )}
               </div>
 
               {/* Info */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span
-                    className={`truncate text-xs font-bold ${
-                      isSelected ? "text-white" : "text-[#1d231f]"
-                    }`}
-                  >
-                    {title}
-                  </span>
-                  <span
-                    className={`shrink-0 text-[10px] font-medium ${
-                      isSelected ? "text-white/80" : "text-[#889087]"
-                    }`}
-                  >
-                    {time}
-                  </span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className={`truncate text-xs ${
+                        isSelected
+                          ? "font-bold text-white"
+                          : hasUnread
+                          ? "font-extrabold text-[#113a30]"
+                          : "font-bold text-[#1d231f]"
+                      }`}
+                    >
+                      {title}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`text-[10px] ${
+                        isSelected
+                          ? "text-white/80 font-medium"
+                          : hasUnread
+                          ? "text-[#1f5f51] font-bold"
+                          : "text-[#889087] font-medium"
+                      }`}
+                    >
+                      {time}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
                   <p
                     className={`truncate text-[11px] ${
-                      isSelected ? "text-white/85 font-normal" : "text-[#6c746d]"
+                      isSelected
+                        ? "text-white/85 font-normal"
+                        : hasUnread
+                        ? "text-[#1b3d34] font-semibold"
+                        : "text-[#6c746d]"
                     }`}
                   >
                     {lastMsg}
                   </p>
-                  {isGroup && (
-                    <span
-                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
-                        isSelected
-                          ? "bg-white/25 text-white"
-                          : "bg-gradient-to-r from-emerald-100 to-teal-100 text-[#175244] border border-[#2f7d68]/20"
-                      }`}
-                    >
-                      Group
-                    </span>
-                  )}
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {hasUnread && (
+                      <span className="grid h-4.5 min-w-4.5 place-items-center rounded-full bg-[#1f5f51] px-1.5 text-[9px] font-extrabold text-white shadow-xs animate-modal-in">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+
+                    {isGroup && (
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+                          isSelected
+                            ? "bg-white/25 text-white"
+                            : "bg-gradient-to-r from-emerald-100 to-teal-100 text-[#175244] border border-[#2f7d68]/20"
+                        }`}
+                      >
+                        Group
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </button>

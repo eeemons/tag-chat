@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LogOut,
   PanelRightOpen,
@@ -27,9 +27,28 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const { user } = useAppSelector((state) => state.auth);
-  const { conversations, selectedConversationId, socketConnected, socketError } =
-    useAppSelector((state) => state.chat);
+  const {
+    conversations,
+    selectedConversationId,
+    socketConnected,
+    socketError,
+    unreadByConversation,
+  } = useAppSelector((state) => state.chat);
   const selected = conversations.find((item) => item._id === selectedConversationId);
+
+  const totalUnread = useMemo(() => {
+    return Object.values(unreadByConversation || {}).reduce((acc, c) => acc + (c || 0), 0);
+  }, [unreadByConversation]);
+
+  // Update document title with unread count
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.title =
+        totalUnread > 0
+          ? `(${totalUnread}) Tag Chat | Real-Time Messaging`
+          : "Tag Chat | Real-Time Messaging";
+    }
+  }, [totalUnread]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#ece7dc] via-[#f4efe6] to-[#e8e2d5] p-2 text-[#1d211f] sm:p-4">
@@ -50,10 +69,15 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
               {/* Mobile Sidebar Hamburger Toggle */}
               <button
                 onClick={() => setMobileDrawerOpen(true)}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#2f7d68] shadow-2xs lg:hidden hover:bg-black/5 transition"
+                className="relative grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#2f7d68] shadow-2xs lg:hidden hover:bg-black/5 transition"
                 title="Open conversations drawer"
               >
                 <Menu className="h-4 w-4" />
+                {totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#1f5f51] px-1 text-[9px] font-extrabold text-white ring-2 ring-white">
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </span>
+                )}
               </button>
 
               <div className="min-w-0">
