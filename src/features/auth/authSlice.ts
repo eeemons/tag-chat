@@ -23,7 +23,14 @@ const initialState: AuthState = {
 export const login = createAsyncThunk(
   "auth/login",
   async (payload: { phone: string; name: string }) => {
-    return chatApi.login(payload.phone, payload.name);
+    const auth = await chatApi.login(payload.phone, payload.name);
+    // Fetch fresh user profile from /auth/me to guarantee updated name is immediately reflected
+    try {
+      const me = await chatApi.me(auth.token);
+      return { token: auth.token, user: me || auth.user };
+    } catch {
+      return auth;
+    }
   },
 );
 
@@ -106,4 +113,5 @@ const authSlice = createSlice({
 });
 
 export const { logout, clearAuthError } = authSlice.actions;
+
 export default authSlice.reducer;

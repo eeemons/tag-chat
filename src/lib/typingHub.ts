@@ -4,22 +4,31 @@ export type HubTypingUser = {
   updatedAt: number;
 };
 
-type TypingListener = (payload: {
-  conversationId: string;
+export type ProfileUpdatePayload = {
   userId: string;
-  userName: string;
-  isTyping: boolean;
+  name: string;
+  phone?: string;
+};
+
+type StreamListener = (data: {
+  type: "typing" | "profile_updated";
+  payload: Record<string, unknown>;
 }) => void;
 
 // Maintain global state across Next.js dev reloads
 declare global {
-  var __tagChatTypingSubscribers: Map<string, Set<TypingListener>> | undefined;
+  var __tagChatStreamSubscribers: Map<string, Set<StreamListener>> | undefined;
+  var __tagChatGlobalSubscribers: Set<StreamListener> | undefined;
   var __tagChatActiveTypers: Map<string, Map<string, HubTypingUser>> | undefined;
 }
 
-const subscribers =
-  globalThis.__tagChatTypingSubscribers ??
-  (globalThis.__tagChatTypingSubscribers = new Map<string, Set<TypingListener>>());
+const streamSubscribers =
+  globalThis.__tagChatStreamSubscribers ??
+  (globalThis.__tagChatStreamSubscribers = new Map<string, Set<StreamListener>>());
+
+const globalSubscribers =
+  globalThis.__tagChatGlobalSubscribers ??
+  (globalThis.__tagChatGlobalSubscribers = new Set<StreamListener>());
 
 const activeTypers =
   globalThis.__tagChatActiveTypers ??
@@ -48,17 +57,47 @@ export function publishTyping(
   }
 
   // Notify active stream subscribers for this conversation
-  const convSubscribers = subscribers.get(conversationId);
+  const convSubscribers = streamSubscribers.get(conversationId);
   if (convSubscribers && convSubscribers.size > 0) {
-    const payload = { conversationId, userId, userName, isTyping };
+    const data = {
+      type: "typing" as const,
+      payload: { conversationId, userId, userName, isTyping },
+    };
     convSubscribers.forEach((listener) => {
       try {
-        listener(payload);
+        listener(data);
       } catch {
         // Listener error ignored
       }
     });
   }
+}
+
+export function publishProfileUpdate(userId: string, name: string, phone?: string) {
+  const data = {
+    type: "profile_updated" as const,
+    payload: { userId, name, phone },
+  };
+
+  // Broadcast to global subscribers
+  globalSubscribers.forEach((listener) => {
+    try {
+      listener(data);
+    } catch {
+      // Ignored
+    }
+  });
+
+  // Also broadcast to all conversation stream subscribers
+  streamSubscribers.forEach((subs) => {
+    subs.forEach((listener) => {
+      try {
+        listener(data);
+      } catch {
+        // Ignored
+      }
+    });
+  });
 }
 
 export function getActiveTypers(conversationId: string): HubTypingUser[] {
@@ -79,22 +118,28 @@ export function getActiveTypers(conversationId: string): HubTypingUser[] {
   return valid;
 }
 
-export function subscribeToTyping(
-  conversationId: string,
-  listener: TypingListener,
+export function subscribeToEvents(
+  conversationId: string | null,
+  listener: StreamListener,
 ): () => void {
-  let convSubscribers = subscribers.get(conversationId);
-  if (!convSubscribers) {
-    convSubscribers = new Set();
-    subscribers.set(conversationId, convSubscribers);
-  }
-
-  convSubscribers.add(listener);
-
-  return () => {
-    convSubscribers?.delete(listener);
-    if (convSubscribers && convSubscribers.size === 0) {
-      subscribers.delete(conversationId);
+  if (conversationId) {
+    let convSubscribers = streamSubscribers.get(conversationId);
+    if (!convSubscribers) {
+      convSubscribers = new Set();
+      streamSubscribers.set(conversationId, convSubscribers);
     }
-  };
+    convSubscribers.add(listener);
+
+    return () => {
+      convSubscribers?.delete(listener);
+      if (convSubscribers && convSubscribers.size === 0) {
+        streamSubscribers.delete(conversationId);
+      }
+    };
+  } else {
+    globalSubscribers.add(listener);
+    return () => {
+      globalSubscribers.delete(listener);
+    };
+  }
 }

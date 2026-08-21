@@ -9,10 +9,17 @@ export type TypingPayload = {
   isTyping: boolean;
 };
 
+export type ProfileUpdatePayload = {
+  userId: string;
+  name: string;
+  phone?: string;
+};
+
 type SocketHandlers = {
   onMessage: (message: Message) => void;
   onConversation: (conversation: Conversation) => void;
   onTyping?: (payload: TypingPayload) => void;
+  onProfileUpdate?: (payload: ProfileUpdatePayload) => void;
   onStatus: (connected: boolean) => void;
   onError: (message: string) => void;
 };
@@ -104,12 +111,36 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
   socket.on("typing:stop", (payload) => handleTypingEvent(payload, false));
   socket.on("user:typing", (payload) => handleTypingEvent(payload, true));
 
+  // Profile update event listeners
+  const handleProfileEvent = (payload: unknown) => {
+    if (!payload || typeof payload !== "object") return;
+    const raw = payload as Record<string, unknown>;
+    const userId = String(raw.userId || raw._id || raw.id || "");
+    const name = String(raw.name || "");
+    const phone = raw.phone ? String(raw.phone) : undefined;
+
+    if (userId && name && handlers.onProfileUpdate) {
+      handlers.onProfileUpdate({ userId, name, phone });
+    }
+  };
+
+  socket.on("user:update", handleProfileEvent);
+  socket.on("profile:updated", handleProfileEvent);
+  socket.on("user:profile_updated", handleProfileEvent);
+
   // Cross-tab broadcast listener for instant local multi-user testing
   if (broadcastChannel) {
     broadcastChannel.onmessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "typing" && event.data.payload) {
         if (handlers.onTyping) {
           handlers.onTyping(event.data.payload);
+        }
+      } else if (
+        (event.data && event.data.type === "profile_updated") ||
+        event.data?.type === "user:profile_updated"
+      ) {
+        if (event.data.payload && handlers.onProfileUpdate) {
+          handlers.onProfileUpdate(event.data.payload);
         }
       }
     };
@@ -150,6 +181,36 @@ export function emitChatTyping(
   if (activeSocket && activeSocket.connected) {
     activeSocket.emit("typing", payload);
     activeSocket.emit(isTyping ? "typing:start" : "typing:stop", payload);
+  }
+}
+
+export function emitProfileUpdate(userId: string, name: string, phone?: string) {
+  const payload: ProfileUpdatePayload = { userId, name, phone };
+
+  // 1. Post to Next.js Real-Time Event Hub
+  if (typeof window !== "undefined") {
+    fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Ignore network errors
+    });
+  }
+
+  // 2. Broadcast over local channel
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ type: "profile_updated", payload });
+    } catch {
+      // Ignore
+    }
+  }
+
+  // 3. Emit over WebSocket
+  if (activeSocket && activeSocket.connected) {
+    activeSocket.emit("user:update", payload);
+    activeSocket.emit("profile:updated", payload);
   }
 }
 

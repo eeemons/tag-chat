@@ -11,9 +11,10 @@ import {
   setSocketConnected,
   setSocketError,
   setTypingUser,
+  userProfileUpdated,
 } from "@/features/chat/chatSlice";
 import { logout, restoreSession } from "@/features/auth/authSlice";
-import { createChatSocket } from "@/lib/socket";
+import { createChatSocket, emitProfileUpdate } from "@/lib/socket";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { ChatShell } from "@/components/ChatShell";
 import { LoginScreen } from "@/components/LoginScreen";
@@ -36,6 +37,8 @@ export function ChatApp() {
   useEffect(() => {
     if (!token || !user) return;
     dispatch(fetchConversations());
+    // Broadcast updated profile across connected peers
+    emitProfileUpdate(user._id, user.name, user.phone);
   }, [dispatch, token, user]);
 
   useEffect(() => {
@@ -76,6 +79,9 @@ export function ChatApp() {
           }, 3500);
         }
       },
+      onProfileUpdate: (payload) => {
+        dispatch(userProfileUpdated(payload));
+      },
       onStatus: (connected) => dispatch(setSocketConnected(connected)),
       onError: (message) => dispatch(setSocketError(message)),
     });
@@ -85,6 +91,32 @@ export function ChatApp() {
       socketRef.current = null;
     };
   }, [dispatch, token]);
+
+  // Global SSE listener for real-time profile updates from other users
+  useEffect(() => {
+    if (typeof window === "undefined" || !token) return;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource("/api/typing/stream");
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "profile_updated" && data.payload) {
+            dispatch(userProfileUpdated(data.payload));
+          }
+        } catch {
+          // Ignore
+        }
+      };
+    } catch {
+      // Fallback
+    }
+
+    return () => {
+      eventSource?.close();
+    };
+  }, [token, dispatch]);
 
   useEffect(() => {
     if (!selectedConversationId && conversations.length > 0) {

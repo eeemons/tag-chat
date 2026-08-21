@@ -1,4 +1,4 @@
-import { getActiveTypers, subscribeToTyping } from "@/lib/typingHub";
+import { getActiveTypers, subscribeToEvents } from "@/lib/typingHub";
 
 export const dynamic = "force-dynamic";
 
@@ -6,38 +6,30 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get("conversationId");
 
-  if (!conversationId) {
-    return new Response("Missing conversationId", { status: 400 });
-  }
-
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     start(controller) {
-      // 1. Send initial snapshot of active typers
-      const initialTypers = getActiveTypers(conversationId);
-      const snapshotMessage = `data: ${JSON.stringify({
-        type: "snapshot",
-        conversationId,
-        typers: initialTypers,
-      })}\n\n`;
-      controller.enqueue(encoder.encode(snapshotMessage));
+      // 1. Send initial snapshot of active typers if in a conversation
+      if (conversationId) {
+        const initialTypers = getActiveTypers(conversationId);
+        const snapshotMessage = `data: ${JSON.stringify({
+          type: "snapshot",
+          conversationId,
+          typers: initialTypers,
+        })}\n\n`;
+        controller.enqueue(encoder.encode(snapshotMessage));
+      }
 
-      // 2. Subscribe to new live typing events
-      const unsubscribe = subscribeToTyping(
-        conversationId,
-        (payload) => {
-          try {
-            const message = `data: ${JSON.stringify({
-              type: "update",
-              payload,
-            })}\n\n`;
-            controller.enqueue(encoder.encode(message));
-          } catch {
-            // Stream might be closed
-          }
-        },
-      );
+      // 2. Subscribe to live events (typing + profile updates)
+      const unsubscribe = subscribeToEvents(conversationId, (data) => {
+        try {
+          const message = `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(message));
+        } catch {
+          // Stream might be closed
+        }
+      });
 
       // 3. Heartbeat ping every 15 seconds
       const pingInterval = setInterval(() => {

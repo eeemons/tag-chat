@@ -5,6 +5,7 @@ import {
 } from "@reduxjs/toolkit";
 import { chatApi } from "@/lib/api";
 import { sortConversations } from "@/lib/format";
+import { login } from "@/features/auth/authSlice";
 import type { Conversation, Message, User } from "@/lib/types";
 import type { RootState } from "@/store/store";
 
@@ -311,12 +312,40 @@ const chatSlice = createSlice({
     conversationUpdated(state, action: PayloadAction<Conversation>) {
       upsertConversation(state, action.payload);
     },
+    userProfileUpdated(
+      state,
+      action: PayloadAction<{ userId: string; name: string; phone?: string }>,
+    ) {
+      const { userId, name, phone } = action.payload;
+
+      // Update in all direct and group conversations
+      state.conversations.forEach((conv) => {
+        if (conv.type === "direct" && conv.participant && conv.participant._id === userId) {
+          conv.participant.name = name;
+          if (phone) conv.participant.phone = phone;
+        } else if (conv.type === "group" && conv.participants) {
+          const p = conv.participants.find((item) => item._id === userId);
+          if (p) {
+            p.name = name;
+            if (phone) p.phone = phone;
+          }
+        }
+      });
+    },
     resetChat() {
       return initialState;
     },
   },
   extraReducers: (builder) => {
     builder
+      .addCase(login.fulfilled, (state) => {
+        state.conversations = [];
+        state.selectedConversationId = null;
+        state.messagesByConversation = {};
+        state.typingByConversation = {};
+        state.unreadByConversation = {};
+        state.conversationsStatus = "idle";
+      })
       .addCase(fetchConversations.pending, (state) => {
         state.conversationsStatus = "loading";
         state.conversationsError = null;
@@ -470,6 +499,7 @@ export const {
   markMessageSeen,
   messageReceived,
   conversationUpdated,
+  userProfileUpdated,
   resetChat,
 } = chatSlice.actions;
 
