@@ -26,6 +26,7 @@ export function ChatApp() {
     (state) => state.chat,
   );
   const socketRef = useRef<Socket | null>(null);
+  const typingTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
   const [booted, setBooted] = useState(false);
 
   useEffect(() => {
@@ -63,6 +64,17 @@ export function ChatApp() {
       },
       onTyping: (payload) => {
         dispatch(setTypingUser(payload));
+        if (payload.isTyping) {
+          // Auto-expire typing indicator after 3.5s if no further typing events arrive
+          const timerKey = `${payload.conversationId}_${payload.userId}`;
+          if (typingTimersRef.current[timerKey]) {
+            clearTimeout(typingTimersRef.current[timerKey]);
+          }
+          typingTimersRef.current[timerKey] = setTimeout(() => {
+            dispatch(setTypingUser({ ...payload, isTyping: false }));
+            delete typingTimersRef.current[timerKey];
+          }, 3500);
+        }
       },
       onStatus: (connected) => dispatch(setSocketConnected(connected)),
       onError: (message) => dispatch(setSocketError(message)),

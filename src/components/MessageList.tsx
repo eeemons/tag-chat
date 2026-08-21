@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, UIEvent, useLayoutEffect } from "react";
 import { ArrowDown, CheckCheck, Check, Loader2, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMessages, markMessageSeen } from "@/features/chat/chatSlice";
+import { fetchMessages, markMessageSeen, setTypingUser } from "@/features/chat/chatSlice";
 import { formatDateTime, formatTime, initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
 import type { Conversation, Message } from "@/lib/types";
@@ -42,6 +42,46 @@ export function MessageList({ conversation }: MessageListProps) {
   // Fetch messages on mount
   useEffect(() => {
     dispatch(fetchMessages({ conversationId: conversation._id }));
+  }, [conversation._id, dispatch]);
+
+  // Subscribe to real-time SSE typing stream for this conversation
+  useEffect(() => {
+    if (typeof window === "undefined" || !conversation._id) return;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(
+        `/api/typing/stream?conversationId=${encodeURIComponent(conversation._id)}`,
+      );
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "snapshot" && Array.isArray(data.typers)) {
+            data.typers.forEach((t: { userId: string; userName: string }) => {
+              dispatch(
+                setTypingUser({
+                  conversationId: conversation._id,
+                  userId: t.userId,
+                  userName: t.userName,
+                  isTyping: true,
+                }),
+              );
+            });
+          } else if (data.type === "update" && data.payload) {
+            dispatch(setTypingUser(data.payload));
+          }
+        } catch {
+          // ignore
+        }
+      };
+    } catch {
+      // EventSource fallback
+    }
+
+    return () => {
+      eventSource?.close();
+    };
   }, [conversation._id, dispatch]);
 
   // Typing users for this conversation (ignoring current user)

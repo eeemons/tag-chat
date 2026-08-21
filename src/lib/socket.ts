@@ -18,6 +18,15 @@ type SocketHandlers = {
 };
 
 let activeSocket: Socket | null = null;
+let broadcastChannel: BroadcastChannel | null = null;
+
+if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+  try {
+    broadcastChannel = new BroadcastChannel("tag_chat_realtime_channel");
+  } catch {
+    broadcastChannel = null;
+  }
+}
 
 export function getChatSocket(): Socket | null {
   return activeSocket;
@@ -52,6 +61,14 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
   socket.on("message:new", (payload: unknown) => {
     const message = normalizeMessage(payload);
     if (message) {
+      // Clear typing for this sender immediately
+      if (handlers.onTyping) {
+        handlers.onTyping({
+          conversationId: message.conversation,
+          userId: message.sender,
+          isTyping: false,
+        });
+      }
       handlers.onMessage(message);
     }
   });
@@ -63,7 +80,7 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
     }
   });
 
-  // Typing event listeners
+  // Typing event listeners for socket events
   const handleTypingEvent = (payload: unknown, defaultIsTyping = true) => {
     if (!payload || typeof payload !== "object") return;
     const raw = payload as Record<string, unknown>;
@@ -87,6 +104,17 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
   socket.on("typing:stop", (payload) => handleTypingEvent(payload, false));
   socket.on("user:typing", (payload) => handleTypingEvent(payload, true));
 
+  // Cross-tab broadcast listener for instant local multi-user testing
+  if (broadcastChannel) {
+    broadcastChannel.onmessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "typing" && event.data.payload) {
+        if (handlers.onTyping) {
+          handlers.onTyping(event.data.payload);
+        }
+      }
+    };
+  }
+
   return socket;
 }
 
@@ -96,11 +124,33 @@ export function emitChatTyping(
   userName: string,
   isTyping: boolean,
 ) {
-  if (!activeSocket || !activeSocket.connected) return;
+  const payload: TypingPayload = { conversationId, userId, userName, isTyping };
 
-  const payload = { conversationId, userId, userName, isTyping };
-  activeSocket.emit("typing", payload);
-  activeSocket.emit(isTyping ? "typing:start" : "typing:stop", payload);
+  // 1. Post to Next.js Real-Time Typing Hub (works across all browsers, devices, incognito)
+  if (typeof window !== "undefined") {
+    fetch("/api/typing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Ignore network errors
+    });
+  }
+
+  // 2. Broadcast over local channel (for 0ms cross-tab live sync)
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ type: "typing", payload });
+    } catch {
+      // Ignore broadcast errors
+    }
+  }
+
+  // 3. Emit over WebSocket
+  if (activeSocket && activeSocket.connected) {
+    activeSocket.emit("typing", payload);
+    activeSocket.emit(isTyping ? "typing:start" : "typing:stop", payload);
+  }
 }
 
 export function normalizeMessage(payload: unknown): Message | null {
