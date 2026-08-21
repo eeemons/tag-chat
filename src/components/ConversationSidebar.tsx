@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Users, MessageSquarePlus, MessageSquare, X } from "lucide-react";
+import { Search, Users, MessageSquarePlus, MessageSquare, X, LogOut } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectConversation } from "@/features/chat/chatSlice";
 import {
@@ -19,6 +19,8 @@ interface ConversationSidebarProps {
   onCreateGroup: () => void;
   onStartChat: () => void;
   onSelectConversation?: () => void;
+  onCloseMobileDrawer?: () => void;
+  onLogout?: () => void;
 }
 
 export function ConversationSidebar({
@@ -26,6 +28,8 @@ export function ConversationSidebar({
   onCreateGroup,
   onStartChat,
   onSelectConversation,
+  onCloseMobileDrawer,
+  onLogout,
 }: ConversationSidebarProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
@@ -75,68 +79,72 @@ export function ConversationSidebar({
 
   return (
     <div className={`flex h-full flex-col overflow-hidden bg-[#fbfaf6] ${compact ? "w-full" : ""}`}>
-      {/* Sidebar Header */}
-      <div className="border-b border-black/10 p-4 bg-white/40">
-        <div className="flex items-center justify-between gap-2 mb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#216d5b] to-[#124d3f] text-white shadow-sm shadow-[#216d5b]/30">
+      {/* Compact Sidebar Header */}
+      <div className="border-b border-black/10 px-3.5 py-3 bg-white/50 backdrop-blur-xs">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="relative grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#216d5b] to-[#124d3f] text-white shadow-xs">
               <MessageSquare className="h-4 w-4" />
               {totalUnread > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-extrabold text-white ring-2 ring-white">
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-extrabold text-white ring-2 ring-white">
                   {totalUnread > 9 ? "9+" : totalUnread}
                 </span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-bold text-[#181d1a]">Messages</h1>
-                {totalUnread > 0 && (
-                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-extrabold text-[#175244]">
-                    {totalUnread} new
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-[#717871]">Real-time discussions</p>
-            </div>
+            <h1 className="text-sm font-bold text-[#181d1a] truncate">Chats</h1>
+            {totalUnread > 0 && (
+              <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[9px] font-extrabold text-[#175244]">
+                {totalUnread}
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={onStartChat}
-              className="flex h-8 items-center gap-1 rounded-xl border border-black/10 bg-white px-2.5 text-xs font-semibold text-[#2d342f] shadow-2xs hover:border-[#2f7d68]/40 hover:text-[#2f7d68] transition"
-              title="Start 1-on-1 chat"
+              className="flex h-7 items-center gap-1 rounded-lg border border-black/10 bg-white px-2 text-[11px] font-semibold text-[#2d342f] shadow-2xs hover:border-[#2f7d68]/40 hover:text-[#2f7d68] transition"
+              title="Start direct chat"
             >
-              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <MessageSquarePlus className="h-3 w-3" />
               <span>Direct</span>
             </button>
             <button
               onClick={onCreateGroup}
-              className="flex h-8 items-center gap-1 rounded-xl border border-black/10 bg-white px-2.5 text-xs font-semibold text-[#2d342f] shadow-2xs hover:border-[#2f7d68]/40 hover:text-[#2f7d68] transition"
+              className="flex h-7 items-center gap-1 rounded-lg border border-black/10 bg-white px-2 text-[11px] font-semibold text-[#2d342f] shadow-2xs hover:border-[#2f7d68]/40 hover:text-[#2f7d68] transition"
               title="Create new group"
             >
-              <Users className="h-3.5 w-3.5" />
+              <Users className="h-3 w-3" />
               <span>Group</span>
             </button>
+            {onCloseMobileDrawer && (
+              <button
+                onClick={onCloseMobileDrawer}
+                className="grid h-7 w-7 place-items-center rounded-lg text-[#7c837c] hover:bg-black/5 hover:text-black transition lg:hidden"
+                title="Close drawer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Search input with debounce & clear */}
+        {/* Compact Search input with debounce & clear */}
         <div className="relative flex items-center">
-          <Search className="absolute left-3 h-3.5 w-3.5 text-[#889087]" />
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-[#889087]" />
           <input
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder="Search conversations..."
-            className="w-full rounded-xl border border-black/10 bg-white py-2 pl-9 pr-8 text-xs text-[#1e2320] placeholder:text-[#9fa69e] outline-none focus:border-[#2f7d68] focus:ring-2 focus:ring-[#2f7d68]/15 transition"
+            placeholder="Search chats..."
+            className="w-full rounded-xl border border-black/10 bg-white py-1.5 pl-8 pr-7 text-xs text-[#1e2320] placeholder:text-[#9fa69e] outline-none focus:border-[#2f7d68] focus:ring-1 focus:ring-[#2f7d68]/20 transition"
           />
           {filterQuery && (
             <button
               type="button"
               onClick={() => setFilterQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#889087] hover:text-black"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#889087] hover:text-black"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
@@ -176,7 +184,7 @@ export function ConversationSidebar({
             <button
               key={conv._id}
               onClick={() => handleSelect(conv._id)}
-              className={`w-full text-left rounded-2xl p-3 transition-all flex items-start gap-3 border ${
+              className={`w-full text-left rounded-2xl p-2.5 transition-all flex items-start gap-2.5 border ${
                 isSelected
                   ? "bg-gradient-to-r from-[#216d5b] to-[#155345] text-white shadow-sm shadow-[#216d5b]/25 border-transparent"
                   : hasUnread
@@ -187,7 +195,7 @@ export function ConversationSidebar({
               {/* Avatar with colorful gradient */}
               <div className="relative shrink-0">
                 <div
-                  className={`grid h-10 w-10 place-items-center rounded-xl text-xs font-bold shadow-xs ${
+                  className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-bold shadow-xs ${
                     isSelected
                       ? "bg-white/20 text-white"
                       : `bg-gradient-to-br ${getAvatarGradient(title)}`
@@ -196,7 +204,7 @@ export function ConversationSidebar({
                   {isGroup ? <Users className="h-4 w-4" /> : initials(title)}
                 </div>
                 {hasUnread && (
-                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
                 )}
               </div>
 
@@ -270,6 +278,45 @@ export function ConversationSidebar({
           );
         })}
       </div>
+
+      {/* Current User Profile Footer */}
+      {currentUser && (
+        <div className="border-t border-black/10 p-3 bg-white/70 backdrop-blur-xs flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              <div
+                className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-bold text-white shadow-xs bg-gradient-to-br ${getAvatarGradient(
+                  currentUser.name,
+                )}`}
+              >
+                {initials(currentUser.name)}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-xs font-bold text-[#181d1a]">
+                  {currentUser.name}
+                </span>
+                <span className="rounded-md bg-emerald-100 px-1 py-0.2 text-[9px] font-bold text-[#175244]">
+                  You
+                </span>
+              </div>
+              <p className="truncate text-[10px] text-[#717871]">{currentUser.phone}</p>
+            </div>
+          </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="grid h-8 w-8 place-items-center rounded-xl border border-red-200/70 bg-white text-[#c53929] shadow-2xs hover:bg-red-50 hover:border-red-300 transition shrink-0"
+              title="Log out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
