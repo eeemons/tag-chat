@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import {
-  LogOut,
   Search,
   UsersRound,
   Wifi,
@@ -10,7 +9,6 @@ import {
   Menu,
   Users,
   Shield,
-  Palette,
 } from "lucide-react";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
@@ -73,8 +71,8 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
   const isAdmin = Boolean(isGroup && user && selected?.admins?.includes(user._id));
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#ece7dc] via-[#f4efe6] to-[#e8e2d5] p-2 text-[#1d211f] sm:p-4">
-      <div className="mx-auto grid h-[calc(100vh-1rem)] max-w-[1500px] overflow-hidden rounded-2xl border border-black/10 bg-[#f9f7f1] shadow-[0_30px_100px_rgba(26,31,28,0.18)] sm:h-[calc(100vh-2rem)] lg:grid-cols-[340px_minmax(0,1fr)]">
+    <main className="h-screen h-[100dvh] w-full overflow-hidden bg-[#faf8f5] text-[#1d211f]">
+      <div className="grid h-full w-full overflow-hidden bg-[#faf8f5] lg:grid-cols-[340px_minmax(0,1fr)]">
         {/* Desktop Sidebar (Always visible on desktop) */}
         <aside className="hidden border-r border-black/10 bg-[#fbfaf6] lg:block">
           <ConversationSidebar
@@ -175,15 +173,6 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                 </button>
               )}
 
-              {/* Wallpaper & Textures Settings Button */}
-              <button
-                className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#39413b] shadow-2xs transition hover:border-[#2f7d68]/40 hover:text-[#2f7d68]"
-                onClick={() => setWallpaperModalOpen(true)}
-                title="Chat Wallpaper Textures"
-              >
-                <Palette className="h-4 w-4" />
-              </button>
-
               <button
                 className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#39413b] shadow-2xs transition hover:border-[#2f7d68]/40 hover:text-[#2f7d68] lg:hidden"
                 onClick={() => setStartOpen(true)}
@@ -197,13 +186,6 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                 title="Create group"
               >
                 <UsersRound className="h-4 w-4" />
-              </button>
-              <button
-                className="grid h-9 w-9 place-items-center rounded-xl border border-red-200/70 bg-white text-[#c53929] shadow-2xs transition hover:border-[#c53929]/40 hover:bg-red-50"
-                onClick={() => setLogoutConfirmOpen(true)}
-                title="Log out"
-              >
-                <LogOut className="h-4 w-4" />
               </button>
             </div>
           </header>
