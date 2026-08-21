@@ -20,7 +20,7 @@ interface StartChatDialogProps {
 export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
-  const { searchResults, searchStatus, searchError, actionStatus, conversations } =
+  const { searchResults, searchStatus, searchError, actionStatus, conversations, onlineUsers } =
     useAppSelector((state) => state.chat);
   const [query, setQuery] = useState("");
   const isInitialMount = useRef(true);
@@ -168,6 +168,7 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
             !searchError &&
             displayUsers.map((u) => {
               const isMe = u._id === currentUser?._id;
+              const isUserOnline = isMe || Boolean(onlineUsers[u._id]);
 
               return (
                 <button
@@ -181,12 +182,20 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className={`grid h-8 w-8 place-items-center rounded-xl text-xs font-bold text-white shadow-xs bg-gradient-to-br ${getAvatarGradient(
-                        u.name,
-                      )}`}
-                    >
-                      {initials(u.name)}
+                    <div className="relative shrink-0">
+                      <div
+                        className={`grid h-8 w-8 place-items-center rounded-xl text-xs font-bold text-white shadow-xs bg-gradient-to-br ${getAvatarGradient(
+                          u.name,
+                        )}`}
+                      >
+                        {initials(u.name)}
+                      </div>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${
+                          isUserOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
+                        }`}
+                        title={isUserOnline ? "Online" : "Offline"}
+                      />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -209,8 +218,19 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
                       You
                     </span>
                   ) : (
-                    <span className="rounded-lg bg-[#2f7d68]/10 px-2.5 py-1 text-xs font-semibold text-[#2f7d68] hover:bg-[#2f7d68] hover:text-white transition">
-                      Chat
+                    <span
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        isUserOnline
+                          ? "bg-emerald-100/80 text-[#1f5f51]"
+                          : "bg-black/5 text-[#7c837c]"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isUserOnline ? "bg-emerald-500" : "bg-gray-400"
+                        }`}
+                      />
+                      {isUserOnline ? "Online" : "Offline"}
                     </span>
                   )}
                 </button>

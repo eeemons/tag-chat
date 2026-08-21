@@ -49,9 +49,8 @@ type ProcessingState =
 export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
-  const { actionStatus, actionError, searchResults, searchStatus } = useAppSelector(
-    (state) => state.chat,
-  );
+  const { actionStatus, actionError, searchResults, searchStatus, onlineUsers } =
+    useAppSelector((state) => state.chat);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(conversation.name);
@@ -393,6 +392,7 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
             {conversation.participants?.map((participant: User) => {
               const isMemberAdmin = conversation.admins?.includes(participant._id);
               const isMe = participant._id === currentUser?._id;
+              const isUserOnline = isMe || Boolean(onlineUsers[participant._id]);
               const isPromotingThis =
                 processingState?.type === "promote" &&
                 processingState.userId === participant._id;
@@ -406,12 +406,20 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                   className="flex items-center justify-between rounded-2xl p-2.5 bg-white/80 border border-black/5 shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold shadow-xs bg-gradient-to-br ${getAvatarGradient(
-                        participant.name,
-                      )}`}
-                    >
-                      {initials(participant.name)}
+                    <div className="relative shrink-0">
+                      <div
+                        className={`grid h-8 w-8 place-items-center rounded-xl text-xs font-bold shadow-xs bg-gradient-to-br ${getAvatarGradient(
+                          participant.name,
+                        )}`}
+                      >
+                        {initials(participant.name)}
+                      </div>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${
+                          isUserOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
+                        }`}
+                        title={isUserOnline ? "Online" : "Offline"}
+                      />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -419,7 +427,21 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                           {participant.name} {isMe && "(You)"}
                         </p>
                       </div>
-                      <p className="truncate text-[10px] text-[#788078]">{participant.phone}</p>
+                      <div className="flex items-center gap-1.5 text-[10px]">
+                        <span
+                          className={`font-semibold ${
+                            isUserOnline ? "text-emerald-600" : "text-[#788078]"
+                          }`}
+                        >
+                          {isUserOnline ? "Online" : "Offline"}
+                        </span>
+                        {participant.phone && (
+                          <>
+                            <span className="text-[#a0a6a0]">•</span>
+                            <span className="truncate text-[#788078]">{participant.phone}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 

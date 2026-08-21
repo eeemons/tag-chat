@@ -43,6 +43,7 @@ type ChatState = {
   typingByConversation: Record<string, TypingUser[]>;
   readReceipts: Record<string, ReadReceipt>;
   unreadByConversation: Record<string, number>;
+  onlineUsers: Record<string, boolean>;
 };
 
 const initialState: ChatState = {
@@ -61,6 +62,7 @@ const initialState: ChatState = {
   typingByConversation: {},
   readReceipts: {},
   unreadByConversation: {},
+  onlineUsers: {},
 };
 
 function tokenFromState(state: RootState) {
@@ -331,6 +333,25 @@ const chatSlice = createSlice({
           }
         }
       });
+      state.onlineUsers[userId] = true;
+    },
+    userPresenceChanged(
+      state,
+      action: PayloadAction<{ userId: string; isOnline: boolean }>,
+    ) {
+      state.onlineUsers[action.payload.userId] = action.payload.isOnline;
+    },
+    batchPresenceSynced(
+      state,
+      action: PayloadAction<string[] | Record<string, boolean>>,
+    ) {
+      if (Array.isArray(action.payload)) {
+        action.payload.forEach((uid) => {
+          state.onlineUsers[uid] = true;
+        });
+      } else {
+        state.onlineUsers = { ...state.onlineUsers, ...action.payload };
+      }
     },
     resetChat() {
       return initialState;
@@ -500,6 +521,8 @@ export const {
   messageReceived,
   conversationUpdated,
   userProfileUpdated,
+  userPresenceChanged,
+  batchPresenceSynced,
   resetChat,
 } = chatSlice.actions;
 

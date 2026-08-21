@@ -10,8 +10,14 @@ export type ProfileUpdatePayload = {
   phone?: string;
 };
 
+export type PresencePayload = {
+  userId: string;
+  isOnline: boolean;
+  timestamp: number;
+};
+
 type StreamListener = (data: {
-  type: "typing" | "profile_updated";
+  type: "typing" | "profile_updated" | "presence" | "presence_sync";
   payload: Record<string, unknown>;
 }) => void;
 
@@ -20,6 +26,7 @@ declare global {
   var __tagChatStreamSubscribers: Map<string, Set<StreamListener>> | undefined;
   var __tagChatGlobalSubscribers: Set<StreamListener> | undefined;
   var __tagChatActiveTypers: Map<string, Map<string, HubTypingUser>> | undefined;
+  var __tagChatOnlineUsers: Map<string, number> | undefined;
 }
 
 const streamSubscribers =
@@ -33,6 +40,10 @@ const globalSubscribers =
 const activeTypers =
   globalThis.__tagChatActiveTypers ??
   (globalThis.__tagChatActiveTypers = new Map<string, Map<string, HubTypingUser>>());
+
+const onlineUsers =
+  globalThis.__tagChatOnlineUsers ??
+  (globalThis.__tagChatOnlineUsers = new Map<string, number>());
 
 export function publishTyping(
   conversationId: string,
@@ -52,6 +63,8 @@ export function publishTyping(
       userName,
       updatedAt: Date.now(),
     });
+    // Typing user is also online
+    publishPresence(userId, true);
   } else {
     convMap.delete(userId);
   }
@@ -73,7 +86,57 @@ export function publishTyping(
   }
 }
 
+export function publishPresence(userId: string, isOnline: boolean) {
+  if (isOnline) {
+    onlineUsers.set(userId, Date.now());
+  } else {
+    onlineUsers.delete(userId);
+  }
+
+  const data = {
+    type: "presence" as const,
+    payload: { userId, isOnline, timestamp: Date.now() },
+  };
+
+  // Broadcast to global subscribers
+  globalSubscribers.forEach((listener) => {
+    try {
+      listener(data);
+    } catch {
+      // Ignored
+    }
+  });
+
+  // Broadcast to conversation subscribers
+  streamSubscribers.forEach((subs) => {
+    subs.forEach((listener) => {
+      try {
+        listener(data);
+      } catch {
+        // Ignored
+      }
+    });
+  });
+}
+
+export function getOnlineUserIds(): string[] {
+  const now = Date.now();
+  const onlineList: string[] = [];
+  onlineUsers.forEach((lastSeen, uid) => {
+    // Online if activity within last 45 seconds
+    if (now - lastSeen < 45000) {
+      onlineList.push(uid);
+    } else {
+      onlineUsers.delete(uid);
+    }
+  });
+  return onlineList;
+}
+
 export function publishProfileUpdate(userId: string, name: string, phone?: string) {
+  // Profile update sender is online
+  publishPresence(userId, true);
+
   const data = {
     type: "profile_updated" as const,
     payload: { userId, name, phone },

@@ -1,4 +1,4 @@
-import { getActiveTypers, subscribeToEvents } from "@/lib/typingHub";
+import { getActiveTypers, getOnlineUserIds, subscribeToEvents } from "@/lib/typingHub";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,15 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
-      // 1. Send initial snapshot of active typers if in a conversation
+      // 1. Send initial presence snapshot
+      const onlineUsers = getOnlineUserIds();
+      const presenceSyncMessage = `data: ${JSON.stringify({
+        type: "presence_sync",
+        onlineUsers,
+      })}\n\n`;
+      controller.enqueue(encoder.encode(presenceSyncMessage));
+
+      // 2. Send initial snapshot of active typers if in a conversation
       if (conversationId) {
         const initialTypers = getActiveTypers(conversationId);
         const snapshotMessage = `data: ${JSON.stringify({
@@ -21,7 +29,7 @@ export async function GET(req: Request) {
         controller.enqueue(encoder.encode(snapshotMessage));
       }
 
-      // 2. Subscribe to live events (typing + profile updates)
+      // 3. Subscribe to live events (typing + profile updates + presence)
       const unsubscribe = subscribeToEvents(conversationId, (data) => {
         try {
           const message = `data: ${JSON.stringify(data)}\n\n`;
@@ -31,7 +39,7 @@ export async function GET(req: Request) {
         }
       });
 
-      // 3. Heartbeat ping every 15 seconds
+      // 4. Heartbeat ping every 15 seconds
       const pingInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": ping\n\n"));
@@ -40,7 +48,7 @@ export async function GET(req: Request) {
         }
       }, 15000);
 
-      // 4. Handle client abort/disconnect
+      // 5. Handle client abort/disconnect
       req.signal.addEventListener("abort", () => {
         clearInterval(pingInterval);
         unsubscribe();

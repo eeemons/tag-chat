@@ -40,9 +40,18 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
     socketError,
     unreadByConversation,
     typingByConversation,
+    onlineUsers,
   } = useAppSelector((state) => state.chat);
 
   const selected = conversations.find((item) => item._id === selectedConversationId);
+
+  const isGroup = selected?.type === "group";
+  const otherUserId = selected?.type === "direct" && selected.participant ? selected.participant._id : null;
+  const isDirectOnline = Boolean(otherUserId && onlineUsers[otherUserId]);
+  const onlineGroupMembers = useMemo(() => {
+    if (selected?.type !== "group" || !selected.participants) return 0;
+    return selected.participants.filter((p) => p._id === user?._id || onlineUsers[p._id]).length;
+  }, [selected, onlineUsers, user?._id]);
 
   const totalUnread = useMemo(() => {
     return Object.values(unreadByConversation || {}).reduce((acc, c) => acc + (c || 0), 0);
@@ -67,7 +76,6 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
 
   const title = selected ? conversationTitle(selected, user) : "";
   const subtitle = selected ? conversationSubtitle(selected) : "";
-  const isGroup = selected?.type === "group";
   const isAdmin = Boolean(isGroup && user && selected?.admins?.includes(user._id));
 
   return (
@@ -131,8 +139,30 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                           ? `${activeTypers[0].userName} is typing...`
                           : `${activeTypers.length} people are typing...`}
                       </p>
+                    ) : isGroup ? (
+                      <p className="truncate text-xs text-[#70776f]">
+                        {selected?.participants?.length || 0} members •{" "}
+                        <span className="text-emerald-700 font-semibold">
+                          {onlineGroupMembers} online
+                        </span>
+                      </p>
                     ) : (
-                      <p className="truncate text-xs text-[#70776f]">{subtitle}</p>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span
+                          className={`flex items-center gap-1 font-semibold ${
+                            isDirectOnline ? "text-emerald-600" : "text-[#7b837c]"
+                          }`}
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              isDirectOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
+                            }`}
+                          />
+                          {isDirectOnline ? "Online" : "Offline"}
+                        </span>
+                        {subtitle && <span className="text-[#a0a6a0]">•</span>}
+                        {subtitle && <span className="truncate text-[#70776f]">{subtitle}</span>}
+                      </div>
                     )}
                   </div>
                 </>

@@ -48,6 +48,7 @@ export function ConversationSidebar({
     selectedConversationId,
     conversationsStatus,
     unreadByConversation,
+    onlineUsers,
   } = useAppSelector((state) => state.chat);
   const [filterQuery, setFilterQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -190,6 +191,9 @@ export function ConversationSidebar({
           const unreadCount = unreadByConversation[conv._id] || 0;
           const hasUnread = unreadCount > 0 && !isSelected;
 
+          const otherUserId = !isGroup && conv.participant ? conv.participant._id : null;
+          const isOtherOnline = Boolean(otherUserId && onlineUsers[otherUserId]);
+
           return (
             <button
               key={conv._id}
@@ -202,7 +206,7 @@ export function ConversationSidebar({
                   : "bg-white/60 hover:bg-white border-black/5 hover:border-black/10 text-[#1c221e]"
               }`}
             >
-              {/* Avatar with colorful gradient */}
+              {/* Avatar with colorful gradient & Presence Indicator */}
               <div className="relative shrink-0">
                 <div
                   className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-bold shadow-xs ${
@@ -213,6 +217,19 @@ export function ConversationSidebar({
                 >
                   {isGroup ? <Users className="h-4 w-4" /> : initials(title)}
                 </div>
+
+                {/* Direct user online/offline presence indicator */}
+                {!isGroup && (
+                  <span
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white shadow-2xs ${
+                      isOtherOnline
+                        ? "bg-emerald-500 animate-pulse"
+                        : "bg-gray-300"
+                    }`}
+                    title={isOtherOnline ? "Online" : "Offline"}
+                  />
+                )}
+
                 {hasUnread && (
                   <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
                 )}

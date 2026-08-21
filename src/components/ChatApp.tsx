@@ -12,6 +12,8 @@ import {
   setSocketError,
   setTypingUser,
   userProfileUpdated,
+  userPresenceChanged,
+  batchPresenceSynced,
 } from "@/features/chat/chatSlice";
 import { logout, restoreSession } from "@/features/auth/authSlice";
 import { createChatSocket, emitProfileUpdate } from "@/lib/socket";
@@ -34,13 +36,46 @@ export function ChatApp() {
     dispatch(restoreSession()).finally(() => setBooted(true));
   }, [dispatch]);
 
+  // Presence heartbeat & profile broadcast
   useEffect(() => {
     if (!token || !user) return;
+
     dispatch(fetchConversations());
     // Broadcast updated profile across connected peers
     emitProfileUpdate(user._id, user.name, user.phone);
+
+    // Initial heartbeat
+    fetch("/api/presence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user._id, isOnline: true }),
+    }).catch(() => {});
+
+    // Periodic heartbeat every 20s
+    const heartbeatInterval = setInterval(() => {
+      fetch("/api/presence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user._id, isOnline: true }),
+      }).catch(() => {});
+    }, 20000);
+
+    const handleUnload = () => {
+      navigator.sendBeacon?.(
+        "/api/presence",
+        JSON.stringify({ userId: user._id, isOnline: false }),
+      );
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      window.removeEventListener("beforeunload", handleUnload);
+    };
   }, [dispatch, token, user]);
 
+  // Socket.io connection lifecycle
   useEffect(() => {
     if (!token) {
       socketRef.current?.disconnect();
@@ -92,7 +127,7 @@ export function ChatApp() {
     };
   }, [dispatch, token]);
 
-  // Global SSE listener for real-time profile updates from other users
+  // Global SSE listener for real-time presence and profile updates
   useEffect(() => {
     if (typeof window === "undefined" || !token) return;
 
@@ -102,7 +137,11 @@ export function ChatApp() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "profile_updated" && data.payload) {
+          if (data.type === "presence_sync" && Array.isArray(data.onlineUsers)) {
+            dispatch(batchPresenceSynced(data.onlineUsers));
+          } else if (data.type === "presence" && data.payload) {
+            dispatch(userPresenceChanged(data.payload));
+          } else if (data.type === "profile_updated" && data.payload) {
             dispatch(userProfileUpdated(data.payload));
           }
         } catch {
@@ -145,6 +184,13 @@ export function ChatApp() {
   return (
     <ChatShell
       onLogout={() => {
+        if (user) {
+          fetch("/api/presence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user._id, isOnline: false }),
+          }).catch(() => {});
+        }
         socketRef.current?.disconnect();
         dispatch(resetChat());
         dispatch(logout());
