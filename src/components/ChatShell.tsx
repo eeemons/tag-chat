@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   LogOut,
-  MessageSquarePlus,
   PanelRightOpen,
   Search,
   UsersRound,
@@ -128,14 +127,6 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
 
       <StartChatDialog open={startOpen} onClose={() => setStartOpen(false)} />
       <GroupDialog open={groupOpen} onClose={() => setGroupOpen(false)} />
-
-      <button
-        className="fixed bottom-6 right-6 hidden h-12 w-12 place-items-center rounded-full bg-[#1f5f51] text-white shadow-xl shadow-[#1f5f51]/25 transition hover:scale-105 active:scale-95 lg:grid"
-        onClick={() => setStartOpen(true)}
-        title="Start new chat"
-      >
-        <MessageSquarePlus className="h-5 w-5" />
-      </button>
     </main>
   );
 }

@@ -66,8 +66,9 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
     }
 
     const timer = setTimeout(() => {
-      dispatch(searchUsers(trimmed));
-    }, 300);
+      const sanitized = trimmed.startsWith("+") ? trimmed.slice(1) : trimmed;
+      dispatch(searchUsers(sanitized || trimmed));
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [searchQuery, showAddMembers, dispatch]);
@@ -262,13 +263,13 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search user..."
+                  placeholder="Search user by name..."
                   className="w-full rounded-lg border border-black/10 bg-[#faf8f5] py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#2f7d68]"
                 />
               </div>
 
               {/* Search results */}
-              <div className="max-h-32 overflow-y-auto space-y-1">
+              <div className="max-h-36 overflow-y-auto space-y-1">
                 {searchStatus === "loading" && (
                   <div className="py-2 text-center text-xs text-[#788078]">
                     <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
@@ -276,29 +277,41 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                   </div>
                 )}
 
-                {searchResults
-                  .filter(
-                    (u) =>
-                      !conversation.participants.some((p) => p._id === u._id),
-                  )
-                  .map((u) => {
-                    const isSelected = selectedToAdd.some((sel) => sel._id === u._id);
-                    return (
-                      <button
-                        key={u._id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedToAdd(selectedToAdd.filter((sel) => sel._id !== u._id));
-                          } else {
-                            setSelectedToAdd([...selectedToAdd, u]);
-                          }
-                        }}
-                        className={`w-full flex items-center justify-between p-1.5 rounded-md text-xs text-left ${
-                          isSelected ? "bg-[#2f7d68]/15" : "hover:bg-black/5"
-                        }`}
-                      >
+                {searchResults.map((u) => {
+                  const isAlreadyMember = conversation.participants.some((p) => p._id === u._id);
+                  const isSelected = selectedToAdd.some((sel) => sel._id === u._id);
+
+                  return (
+                    <button
+                      key={u._id}
+                      type="button"
+                      disabled={isAlreadyMember || isActionLoading}
+                      onClick={() => {
+                        if (isAlreadyMember) return;
+                        if (isSelected) {
+                          setSelectedToAdd(selectedToAdd.filter((sel) => sel._id !== u._id));
+                        } else {
+                          setSelectedToAdd([...selectedToAdd, u]);
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg text-xs text-left transition ${
+                        isAlreadyMember
+                          ? "bg-black/[0.02] opacity-60 cursor-default"
+                          : isSelected
+                          ? "bg-[#2f7d68]/15 border border-[#2f7d68]/30"
+                          : "hover:bg-black/5"
+                      }`}
+                    >
+                      <div>
                         <span className="font-medium text-[#1c221e]">{u.name}</span>
+                        <p className="text-[10px] text-[#788078]">{u.phone}</p>
+                      </div>
+
+                      {isAlreadyMember ? (
+                        <span className="text-[10px] text-[#788078] bg-black/5 px-1.5 py-0.5 rounded">
+                          In group
+                        </span>
+                      ) : (
                         <div
                           className={`grid h-4 w-4 place-items-center rounded border ${
                             isSelected
@@ -308,9 +321,10 @@ export function GroupDetails({ conversation, onClose }: GroupDetailsProps) {
                         >
                           {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
                         </div>
-                      </button>
-                    );
-                  })}
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {selectedToAdd.length > 0 && (

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { X, Search, Loader2, UserPlus, Phone } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { X, Search, Loader2, UserPlus, Phone, AlertCircle, MessageSquare } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearSearch, searchUsers, startDirectConversation } from "@/features/chat/chatSlice";
 import { initials } from "@/lib/format";
-import type { User } from "@/lib/types";
+import type { User, Conversation } from "@/lib/types";
 
 interface StartChatDialogProps {
   open: boolean;
@@ -14,12 +14,37 @@ interface StartChatDialogProps {
 
 export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
   const dispatch = useAppDispatch();
-  const { searchResults, searchStatus, searchError, actionStatus } = useAppSelector(
+  const { searchResults, searchStatus, searchError, actionStatus, conversations } = useAppSelector(
     (state) => state.chat,
   );
   const { user: currentUser } = useAppSelector((state) => state.auth);
   const [query, setQuery] = useState("");
   const isInitialMount = useRef(true);
+
+  // Suggested contacts from existing conversations
+  const suggestedContacts = useMemo(() => {
+    const map = new Map<string, User>();
+    conversations.forEach((c: Conversation) => {
+      if (c.type === "direct" && c.participant && c.participant._id !== currentUser?._id) {
+        map.set(c.participant._id, c.participant);
+      } else if (c.type === "group" && c.participants) {
+        c.participants.forEach((p: User) => {
+          if (p._id !== currentUser?._id) {
+            map.set(p._id, p);
+          }
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [conversations, currentUser?._id]);
+
+  // Combined list of users to display based on query
+  const displayUsers = useMemo(() => {
+    if (!query.trim()) {
+      return suggestedContacts;
+    }
+    return searchResults;
+  }, [query, suggestedContacts, searchResults]);
 
   // Debounced search
   useEffect(() => {
@@ -37,8 +62,9 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
     }
 
     const timer = setTimeout(() => {
-      dispatch(searchUsers(trimmed));
-    }, 300);
+      const sanitized = trimmed.startsWith("+") ? trimmed.slice(1) : trimmed;
+      dispatch(searchUsers(sanitized || trimmed));
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [query, open, dispatch]);
@@ -68,11 +94,14 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
       <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#2f7d68]/10 text-[#2f7d68]">
-              <UserPlus className="h-4 w-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#2f7d68]/10 text-[#2f7d68]">
+              <UserPlus className="h-5 w-5" />
             </div>
-            <h2 className="text-lg font-semibold text-[#1a1f1c]">Start Direct Chat</h2>
+            <div>
+              <h2 className="text-lg font-bold text-[#1a1f1c]">Start Direct Chat</h2>
+              <p className="text-xs text-[#717871]">Find people by name</p>
+            </div>
           </div>
           <button
             onClick={handleClose}
@@ -89,56 +118,79 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or phone number..."
+            placeholder="Search by user name..."
             autoFocus
-            className="w-full rounded-xl border border-black/10 bg-[#faf8f5] py-2.5 pl-10 pr-4 text-sm text-[#1b201d] placeholder:text-[#9ea49d] outline-none focus:border-[#2f7d68] focus:ring-2 focus:ring-[#2f7d68]/15 transition"
+            className="w-full rounded-xl border border-black/10 bg-[#faf8f5] py-2.5 pl-10 pr-9 text-sm text-[#1b201d] placeholder:text-[#9ea49d] outline-none focus:border-[#2f7d68] focus:ring-2 focus:ring-[#2f7d68]/15 transition"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a9189] hover:text-black"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Results / Status */}
-        <div className="max-h-72 overflow-y-auto space-y-1">
+        <div className="max-h-72 overflow-y-auto space-y-1 rounded-xl border border-black/10 p-1.5 bg-[#faf8f5]">
           {isSearching && (
             <div className="flex items-center justify-center py-8 text-xs text-[#7e857e] gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-[#2f7d68]" />
-              Searching for users...
+              <span>Searching for users...</span>
             </div>
           )}
 
           {searchError && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 text-center">
-              {searchError}
+            <div className="flex items-center justify-center gap-2 p-3 text-xs text-red-600 bg-red-50 rounded-lg">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{searchError}</span>
             </div>
           )}
 
-          {!isSearching && query.trim() && searchResults.length === 0 && (
+          {!isSearching && !searchError && query.trim() && displayUsers.length === 0 && (
             <div className="py-8 text-center text-xs text-[#7a8179]">
-              No users found matching &ldquo;{query}&rdquo;
+              <p className="font-medium text-[#49504a]">No users found matching &ldquo;{query}&rdquo;</p>
+              <p className="mt-1 text-[11px] text-[#868d86]">Check the spelling and try searching by display name.</p>
             </div>
           )}
 
-          {!isSearching && !query.trim() && (
+          {!isSearching && !searchError && !query.trim() && displayUsers.length === 0 && (
             <div className="py-8 text-center text-xs text-[#8a918a]">
-              Type a name or phone number to find people on the network.
+              <MessageSquare className="mx-auto h-6 w-6 text-[#9fa69e] mb-1.5" />
+              <p className="font-medium text-[#49504a]">Start a New Conversation</p>
+              <p className="mt-0.5 text-[11px] text-[#868d86]">Type a name above to search for people.</p>
             </div>
           )}
 
-          {searchResults
-            .filter((u) => u._id !== currentUser?._id)
-            .map((u) => (
+          {!isSearching && !searchError && displayUsers.map((u) => {
+            const isMe = u._id === currentUser?._id;
+
+            return (
               <button
                 key={u._id}
-                onClick={() => handleSelectUser(u)}
-                disabled={isStarting}
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#faf8f5] border border-transparent hover:border-black/5 transition text-left group"
+                onClick={() => !isMe && handleSelectUser(u)}
+                disabled={isStarting || isMe}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border transition text-left ${
+                  isMe
+                    ? "bg-black/[0.02] border-black/5 opacity-75 cursor-default"
+                    : "bg-white hover:border-[#2f7d68]/40 border-black/5 shadow-xs"
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#e6e2da] text-xs font-bold text-[#3d453f]">
+                  <div
+                    className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-bold ${
+                      isMe ? "bg-black/10 text-black/60" : "bg-[#e6e2da] text-[#3d453f]"
+                    }`}
+                  >
                     {initials(u.name)}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#1a1f1c] group-hover:text-[#2f7d68] transition">
-                      {u.name}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-[#1a1f1c]">{u.name}</p>
+                      {isMe && <span className="text-xs text-[#7a8179]">(You)</span>}
+                    </div>
                     <p className="flex items-center gap-1 text-xs text-[#737a73]">
                       <Phone className="h-3 w-3" />
                       {u.phone}
@@ -146,11 +198,18 @@ export function StartChatDialog({ open, onClose }: StartChatDialogProps) {
                   </div>
                 </div>
 
-                <span className="rounded-lg bg-[#2f7d68]/10 px-2.5 py-1 text-xs font-medium text-[#2f7d68] group-hover:bg-[#2f7d68] group-hover:text-white transition">
-                  Chat
-                </span>
+                {isMe ? (
+                  <span className="rounded-lg bg-black/5 px-2.5 py-1 text-xs font-medium text-[#7a8179]">
+                    Current user
+                  </span>
+                ) : (
+                  <span className="rounded-lg bg-[#2f7d68]/10 px-2.5 py-1 text-xs font-medium text-[#2f7d68] hover:bg-[#2f7d68] hover:text-white transition">
+                    Chat
+                  </span>
+                )}
               </button>
-            ))}
+            );
+          })}
         </div>
       </div>
     </div>
