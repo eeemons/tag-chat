@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Users, MessageSquarePlus, MessageSquare, X, LogOut } from "lucide-react";
+import {
+  Search,
+  Users,
+  MessageSquarePlus,
+  MessageSquare,
+  X,
+  LogOut,
+  Palette,
+} from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectConversation } from "@/features/chat/chatSlice";
 import {
@@ -20,6 +28,7 @@ interface ConversationSidebarProps {
   onStartChat: () => void;
   onSelectConversation?: () => void;
   onCloseMobileDrawer?: () => void;
+  onOpenSettings?: () => void;
   onLogout?: () => void;
 }
 
@@ -29,6 +38,7 @@ export function ConversationSidebar({
   onStartChat,
   onSelectConversation,
   onCloseMobileDrawer,
+  onOpenSettings,
   onLogout,
 }: ConversationSidebarProps) {
   const dispatch = useAppDispatch();
@@ -279,9 +289,9 @@ export function ConversationSidebar({
         })}
       </div>
 
-      {/* Current User Profile Footer */}
+      {/* Current User Profile Footer with Settings Button */}
       {currentUser && (
-        <div className="border-t border-black/10 p-3 bg-white/70 backdrop-blur-xs flex items-center justify-between gap-2.5">
+        <div className="border-t border-black/10 p-3 bg-white/70 backdrop-blur-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative shrink-0">
               <div
@@ -306,15 +316,28 @@ export function ConversationSidebar({
             </div>
           </div>
 
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-red-200/70 bg-white text-[#c53929] shadow-2xs hover:bg-red-50 hover:border-red-300 transition shrink-0"
-              title="Log out"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Wallpaper & Texture Settings Button */}
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="grid h-8 w-8 place-items-center rounded-xl border border-black/10 bg-white text-[#3d4540] shadow-2xs hover:bg-[#f3f0e8] hover:text-[#2f7d68] transition"
+                title="Chat Wallpaper & Textures"
+              >
+                <Palette className="h-3.5 w-3.5" />
+              </button>
+            )}
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="grid h-8 w-8 place-items-center rounded-xl border border-red-200/70 bg-white text-[#c53929] shadow-2xs hover:bg-red-50 hover:border-red-300 transition"
+                title="Log out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

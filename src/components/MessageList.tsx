@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMessages, markMessageSeen, setTypingUser } from "@/features/chat/chatSlice";
 import { formatDateTime, formatTime, initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
+import { useChatBackground } from "@/hooks/useChatBackground";
 import type { Conversation, Message } from "@/lib/types";
 
 interface MessageListProps {
@@ -13,6 +14,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ conversation }: MessageListProps) {
+  const { currentBackground } = useChatBackground();
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
   const { messagesByConversation, typingByConversation, readReceipts } = useAppSelector(
@@ -162,7 +164,18 @@ export function MessageList({ conversation }: MessageListProps) {
   };
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#faf8f5]">
+    <div
+      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden transition-colors duration-250 ${
+        currentBackground.isDark ? "text-white" : "text-[#1c221e]"
+      }`}
+      style={{
+        backgroundColor: currentBackground.previewBg,
+        backgroundImage: currentBackground.cssPattern.match(/background-image:\s*([^;]+);/)?.[1] || "",
+        backgroundSize: currentBackground.cssPattern.match(/background-size:\s*([^;]+);/)?.[1] || "",
+        backgroundPosition: currentBackground.cssPattern.match(/background-position:\s*([^;]+);/)?.[1] || "",
+        backgroundRepeat: currentBackground.cssPattern.match(/background-repeat:\s*([^;]+);/)?.[1] || "repeat",
+      }}
+    >
       {/* Scrollable message area */}
       <div
         ref={scrollContainerRef}
@@ -175,7 +188,11 @@ export function MessageList({ conversation }: MessageListProps) {
             <button
               onClick={handleLoadMore}
               disabled={isLoadingMore}
-              className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-[#4a524c] shadow-xs hover:bg-[#f2efe9] disabled:opacity-50 transition"
+              className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium shadow-xs disabled:opacity-50 transition ${
+                currentBackground.isDark
+                  ? "bg-[#1d2420] border-white/10 text-white/90 hover:bg-[#252e29]"
+                  : "bg-white border-black/10 text-[#4a524c] hover:bg-[#f2efe9]"
+              }`}
             >
               {isLoadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#2f7d68]" />}
               {isLoadingMore ? "Loading older history..." : "Load earlier messages"}
@@ -186,7 +203,13 @@ export function MessageList({ conversation }: MessageListProps) {
         {/* Loading state */}
         {isLoading && messages.length === 0 && (
           <div className="flex h-full min-h-48 items-center justify-center">
-            <div className="flex items-center gap-2 text-xs font-medium text-[#7a8179] bg-white px-4 py-2 rounded-full border border-black/5 shadow-xs">
+            <div
+              className={`flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full border shadow-xs ${
+                currentBackground.isDark
+                  ? "bg-[#1d2420] text-white/90 border-white/10"
+                  : "bg-white text-[#7a8179] border-black/5"
+              }`}
+            >
               <Loader2 className="h-4 w-4 animate-spin text-[#2f7d68]" />
               Loading conversation history...
             </div>
@@ -199,8 +222,18 @@ export function MessageList({ conversation }: MessageListProps) {
             <div className="grid h-14 w-14 place-items-center rounded-3xl bg-gradient-to-br from-[#2f7d68]/15 to-emerald-100 text-[#2f7d68] mb-3 shadow-inner">
               💬
             </div>
-            <p className="font-semibold text-sm text-[#2d332f]">No messages yet</p>
-            <p className="text-xs text-[#767d75] mt-1 max-w-xs leading-relaxed">
+            <p
+              className={`font-semibold text-sm ${
+                currentBackground.isDark ? "text-white" : "text-[#2d332f]"
+              }`}
+            >
+              No messages yet
+            </p>
+            <p
+              className={`text-xs mt-1 max-w-xs leading-relaxed ${
+                currentBackground.isDark ? "text-white/70" : "text-[#767d75]"
+              }`}
+            >
               Say hello or send a message below to begin this conversation.
             </p>
           </div>
@@ -249,13 +282,15 @@ export function MessageList({ conversation }: MessageListProps) {
                     className={`cursor-pointer rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all shadow-xs ${
                       isMe
                         ? "rounded-br-xs bg-gradient-to-br from-[#1d6b59] to-[#124d3f] text-white hover:brightness-105"
+                        : currentBackground.isDark
+                        ? "rounded-bl-xs border border-white/10 bg-[#1e2521] text-white hover:bg-[#252e29]"
                         : "rounded-bl-xs border border-black/5 bg-white text-[#1f2421] hover:border-black/15"
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{message.text}</p>
                     <div
                       className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] ${
-                        isMe ? "text-white/80" : "text-[#889087]"
+                        isMe ? "text-white/80" : currentBackground.isDark ? "text-white/60" : "text-[#889087]"
                       }`}
                     >
                       <span>{formatTime(message.createdAt)}</span>
@@ -306,13 +341,23 @@ export function MessageList({ conversation }: MessageListProps) {
             <div className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white text-[10px] font-bold shadow-xs">
               {initials(activeTypers[0].userName)}
             </div>
-            <div className="flex items-center gap-2 rounded-2xl rounded-bl-xs border border-black/5 bg-white px-3.5 py-2 shadow-xs">
+            <div
+              className={`flex items-center gap-2 rounded-2xl rounded-bl-xs border px-3.5 py-2 shadow-xs ${
+                currentBackground.isDark
+                  ? "bg-[#1e2521] border-white/10 text-white"
+                  : "bg-white border-black/5 text-[#5c645e]"
+              }`}
+            >
               <div className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68] [animation-delay:-0.3s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68] [animation-delay:-0.15s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68]" />
               </div>
-              <span className="text-[11px] font-medium text-[#5c645e]">
+              <span
+                className={`text-[11px] font-medium ${
+                  currentBackground.isDark ? "text-white/80" : "text-[#5c645e]"
+                }`}
+              >
                 {activeTypers.length === 1
                   ? `${activeTypers[0].userName} is typing...`
                   : `${activeTypers.length} people are typing...`}

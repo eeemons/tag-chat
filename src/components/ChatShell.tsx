@@ -10,6 +10,7 @@ import {
   Menu,
   Users,
   Shield,
+  Palette,
 } from "lucide-react";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
@@ -17,9 +18,11 @@ import { GroupDialog } from "@/components/GroupDialog";
 import { GroupDetails } from "@/components/GroupDetails";
 import { StartChatDialog } from "@/components/StartChatDialog";
 import { LogoutConfirmModal } from "@/components/LogoutConfirmModal";
+import { BackgroundSelectorModal } from "@/components/BackgroundSelectorModal";
 import { useAppSelector } from "@/store/hooks";
 import { conversationTitle, conversationSubtitle, initials } from "@/lib/format";
 import { getAvatarGradient } from "@/lib/colors";
+import { useChatBackground } from "@/hooks/useChatBackground";
 
 export function ChatShell({ onLogout }: { onLogout: () => void }) {
   const [startOpen, setStartOpen] = useState(false);
@@ -27,6 +30,9 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
+
+  const { backgroundId, selectBackground } = useChatBackground();
 
   const { user } = useAppSelector((state) => state.auth);
   const {
@@ -74,6 +80,7 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
           <ConversationSidebar
             onCreateGroup={() => setGroupOpen(true)}
             onStartChat={() => setStartOpen(true)}
+            onOpenSettings={() => setWallpaperModalOpen(true)}
             onLogout={() => setLogoutConfirmOpen(true)}
           />
         </aside>
@@ -167,6 +174,16 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
                   <span className="hidden sm:inline">Group Info</span>
                 </button>
               )}
+
+              {/* Wallpaper & Textures Settings Button */}
+              <button
+                className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#39413b] shadow-2xs transition hover:border-[#2f7d68]/40 hover:text-[#2f7d68]"
+                onClick={() => setWallpaperModalOpen(true)}
+                title="Chat Wallpaper Textures"
+              >
+                <Palette className="h-4 w-4" />
+              </button>
+
               <button
                 className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white text-[#39413b] shadow-2xs transition hover:border-[#2f7d68]/40 hover:text-[#2f7d68] lg:hidden"
                 onClick={() => setStartOpen(true)}
@@ -227,6 +244,10 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
               }}
               onSelectConversation={() => setMobileDrawerOpen(false)}
               onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
+              onOpenSettings={() => {
+                setMobileDrawerOpen(false);
+                setWallpaperModalOpen(true);
+              }}
               onLogout={() => {
                 setMobileDrawerOpen(false);
                 setLogoutConfirmOpen(true);
@@ -239,6 +260,12 @@ export function ChatShell({ onLogout }: { onLogout: () => void }) {
       {/* Modals */}
       <StartChatDialog open={startOpen} onClose={() => setStartOpen(false)} />
       <GroupDialog open={groupOpen} onClose={() => setGroupOpen(false)} />
+      <BackgroundSelectorModal
+        open={wallpaperModalOpen}
+        onClose={() => setWallpaperModalOpen(false)}
+        currentBackgroundId={backgroundId}
+        onSelect={selectBackground}
+      />
       <LogoutConfirmModal
         open={logoutConfirmOpen}
         onClose={() => setLogoutConfirmOpen(false)}
