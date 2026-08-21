@@ -10,6 +10,7 @@ import {
   selectConversation,
   setSocketConnected,
   setSocketError,
+  setTypingUser,
 } from "@/features/chat/chatSlice";
 import { logout, restoreSession } from "@/features/auth/authSlice";
 import { createChatSocket } from "@/lib/socket";
@@ -59,6 +60,9 @@ export function ChatApp() {
       onConversation: (conversation) => {
         dispatch(conversationUpdated(conversation));
         dispatch(fetchConversations());
+      },
+      onTyping: (payload) => {
+        dispatch(setTypingUser(payload));
       },
       onStatus: (connected) => dispatch(setSocketConnected(connected)),
       onError: (message) => dispatch(setSocketError(message)),

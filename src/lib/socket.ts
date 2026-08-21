@@ -2,18 +2,39 @@ import { io, type Socket } from "socket.io-client";
 import { SOCKET_URL } from "@/lib/api";
 import type { Conversation, Message } from "@/lib/types";
 
+export type TypingPayload = {
+  conversationId: string;
+  userId: string;
+  userName?: string;
+  isTyping: boolean;
+};
+
 type SocketHandlers = {
   onMessage: (message: Message) => void;
   onConversation: (conversation: Conversation) => void;
+  onTyping?: (payload: TypingPayload) => void;
   onStatus: (connected: boolean) => void;
   onError: (message: string) => void;
 };
 
+let activeSocket: Socket | null = null;
+
+export function getChatSocket(): Socket | null {
+  return activeSocket;
+}
+
 export function createChatSocket(token: string, handlers: SocketHandlers): Socket {
+  if (activeSocket) {
+    activeSocket.disconnect();
+    activeSocket = null;
+  }
+
   const socket = io(SOCKET_URL, {
     auth: { token },
     transports: ["websocket", "polling"],
   });
+
+  activeSocket = socket;
 
   socket.on("connect", () => {
     handlers.onStatus(true);
@@ -42,7 +63,44 @@ export function createChatSocket(token: string, handlers: SocketHandlers): Socke
     }
   });
 
+  // Typing event listeners
+  const handleTypingEvent = (payload: unknown, defaultIsTyping = true) => {
+    if (!payload || typeof payload !== "object") return;
+    const raw = payload as Record<string, unknown>;
+    const conversationId = String(raw.conversationId || raw.conversation || "");
+    const userId = String(raw.userId || raw.sender || raw.user || "");
+    const userName = raw.userName ? String(raw.userName) : raw.name ? String(raw.name) : undefined;
+    const isTyping = typeof raw.isTyping === "boolean" ? raw.isTyping : defaultIsTyping;
+
+    if (conversationId && userId && handlers.onTyping) {
+      handlers.onTyping({
+        conversationId,
+        userId,
+        userName,
+        isTyping,
+      });
+    }
+  };
+
+  socket.on("typing", (payload) => handleTypingEvent(payload, true));
+  socket.on("typing:start", (payload) => handleTypingEvent(payload, true));
+  socket.on("typing:stop", (payload) => handleTypingEvent(payload, false));
+  socket.on("user:typing", (payload) => handleTypingEvent(payload, true));
+
   return socket;
+}
+
+export function emitChatTyping(
+  conversationId: string,
+  userId: string,
+  userName: string,
+  isTyping: boolean,
+) {
+  if (!activeSocket || !activeSocket.connected) return;
+
+  const payload = { conversationId, userId, userName, isTyping };
+  activeSocket.emit("typing", payload);
+  activeSocket.emit(isTyping ? "typing:start" : "typing:stop", payload);
 }
 
 export function normalizeMessage(payload: unknown): Message | null {

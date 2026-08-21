@@ -15,6 +15,17 @@ type MessagesBucket = {
   hasMore: boolean;
 };
 
+export type TypingUser = {
+  userId: string;
+  userName: string;
+  timestamp: number;
+};
+
+export type ReadReceipt = {
+  seen: boolean;
+  seenAt: string;
+};
+
 type ChatState = {
   conversations: Conversation[];
   selectedConversationId: string | null;
@@ -28,6 +39,8 @@ type ChatState = {
   actionError: string | null;
   socketConnected: boolean;
   socketError: string | null;
+  typingByConversation: Record<string, TypingUser[]>;
+  readReceipts: Record<string, ReadReceipt>;
 };
 
 const initialState: ChatState = {
@@ -43,6 +56,8 @@ const initialState: ChatState = {
   actionError: null,
   socketConnected: false,
   socketError: null,
+  typingByConversation: {},
+  readReceipts: {},
 };
 
 function tokenFromState(state: RootState) {
@@ -226,6 +241,38 @@ const chatSlice = createSlice({
     setSocketError(state, action: PayloadAction<string | null>) {
       state.socketError = action.payload;
     },
+    setTypingUser(
+      state,
+      action: PayloadAction<{
+        conversationId: string;
+        userId: string;
+        userName?: string;
+        isTyping: boolean;
+      }>,
+    ) {
+      const { conversationId, userId, userName = "Someone", isTyping } = action.payload;
+      const currentList = state.typingByConversation[conversationId] || [];
+      const filtered = currentList.filter((item) => item.userId !== userId);
+
+      if (isTyping) {
+        state.typingByConversation[conversationId] = [
+          ...filtered,
+          { userId, userName, timestamp: Date.now() },
+        ];
+      } else {
+        state.typingByConversation[conversationId] = filtered;
+      }
+    },
+    markMessageSeen(
+      state,
+      action: PayloadAction<{ messageId: string; seenAt?: string }>,
+    ) {
+      const { messageId, seenAt = new Date().toISOString() } = action.payload;
+      state.readReceipts[messageId] = {
+        seen: true,
+        seenAt,
+      };
+    },
     messageReceived(state, action: PayloadAction<Message>) {
       const message = action.payload;
       const bucket =
@@ -402,10 +449,11 @@ export const {
   clearActionError,
   setSocketConnected,
   setSocketError,
+  setTypingUser,
+  markMessageSeen,
   messageReceived,
   conversationUpdated,
   resetChat,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
-

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, UIEvent, useLayoutEffect } from "react";
-import { ArrowDown, Loader2 } from "lucide-react";
+import { ArrowDown, CheckCheck, Check, Loader2, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMessages } from "@/features/chat/chatSlice";
-import { formatTime, initials } from "@/lib/format";
+import { fetchMessages, markMessageSeen } from "@/features/chat/chatSlice";
+import { formatDateTime, formatTime, initials } from "@/lib/format";
+import { getAvatarGradient } from "@/lib/colors";
 import type { Conversation, Message } from "@/lib/types";
 
 interface MessageListProps {
@@ -14,7 +15,9 @@ interface MessageListProps {
 export function MessageList({ conversation }: MessageListProps) {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
-  const { messagesByConversation } = useAppSelector((state) => state.chat);
+  const { messagesByConversation, typingByConversation, readReceipts } = useAppSelector(
+    (state) => state.chat,
+  );
 
   const bucket = messagesByConversation[conversation._id] || {
     items: [],
@@ -33,6 +36,7 @@ export function MessageList({ conversation }: MessageListProps) {
   const isScrolledUpRef = useRef(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
   const prevMessagesCountRef = useRef(0);
 
   // Fetch messages on mount
@@ -40,7 +44,12 @@ export function MessageList({ conversation }: MessageListProps) {
     dispatch(fetchMessages({ conversationId: conversation._id }));
   }, [conversation._id, dispatch]);
 
-  // Handle auto-scroll on new messages
+  // Typing users for this conversation (ignoring current user)
+  const activeTypers = (typingByConversation[conversation._id] || []).filter(
+    (typer) => typer.userId !== currentUser?._id,
+  );
+
+  // Handle auto-scroll on new messages or typing change
   useLayoutEffect(() => {
     const prevCount = prevMessagesCountRef.current;
     const currentCount = messages.length;
@@ -62,7 +71,7 @@ export function MessageList({ conversation }: MessageListProps) {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
-  }, [messages, currentUser?._id]);
+  }, [messages, currentUser?._id, activeTypers.length]);
 
   const handleScroll = (e: UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -95,10 +104,20 @@ export function MessageList({ conversation }: MessageListProps) {
     );
   };
 
+  const handleToggleMessageDetails = (messageId: string) => {
+    if (tappedMessageId === messageId) {
+      setTappedMessageId(null);
+    } else {
+      setTappedMessageId(messageId);
+      // Mark seen locally
+      dispatch(markMessageSeen({ messageId }));
+    }
+  };
+
   // Find sender name for group chats
   const getSenderName = (senderId: string) => {
     if (conversation.type !== "group") return "";
-    const member = conversation.participants.find((p) => p._id === senderId);
+    const member = conversation.participants?.find((p) => p._id === senderId);
     return member?.name || "Unknown member";
   };
 
@@ -108,7 +127,7 @@ export function MessageList({ conversation }: MessageListProps) {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-4 md:px-6"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-3.5 md:px-6"
       >
         {/* Load more button */}
         {hasMore && (
@@ -116,10 +135,10 @@ export function MessageList({ conversation }: MessageListProps) {
             <button
               onClick={handleLoadMore}
               disabled={isLoadingMore}
-              className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-[#4a524c] shadow-sm hover:bg-[#f2efe9] disabled:opacity-50 transition"
+              className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-[#4a524c] shadow-xs hover:bg-[#f2efe9] disabled:opacity-50 transition"
             >
-              {isLoadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {isLoadingMore ? "Loading older messages..." : "Load earlier messages"}
+              {isLoadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#2f7d68]" />}
+              {isLoadingMore ? "Loading older history..." : "Load earlier messages"}
             </button>
           </div>
         )}
@@ -127,7 +146,7 @@ export function MessageList({ conversation }: MessageListProps) {
         {/* Loading state */}
         {isLoading && messages.length === 0 && (
           <div className="flex h-full min-h-48 items-center justify-center">
-            <div className="flex items-center gap-2 text-sm text-[#7a8179]">
+            <div className="flex items-center gap-2 text-xs font-medium text-[#7a8179] bg-white px-4 py-2 rounded-full border border-black/5 shadow-xs">
               <Loader2 className="h-4 w-4 animate-spin text-[#2f7d68]" />
               Loading conversation history...
             </div>
@@ -137,12 +156,12 @@ export function MessageList({ conversation }: MessageListProps) {
         {/* Empty state */}
         {!isLoading && messages.length === 0 && (
           <div className="flex h-full min-h-48 flex-col items-center justify-center text-center">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#2f7d68]/10 text-[#2f7d68] mb-3">
+            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-gradient-to-br from-[#2f7d68]/15 to-emerald-100 text-[#2f7d68] mb-3 shadow-inner">
               💬
             </div>
-            <p className="font-medium text-[#2d332f]">No messages yet</p>
-            <p className="text-xs text-[#767d75] mt-1 max-w-xs">
-              Start the conversation by sending a greeting below.
+            <p className="font-semibold text-sm text-[#2d332f]">No messages yet</p>
+            <p className="text-xs text-[#767d75] mt-1 max-w-xs leading-relaxed">
+              Say hello or send a message below to begin this conversation.
             </p>
           </div>
         )}
@@ -151,50 +170,116 @@ export function MessageList({ conversation }: MessageListProps) {
         {messages.map((message: Message, index: number) => {
           const isMe = message.sender === currentUser?._id;
           const senderName = getSenderName(message.sender);
+          const isTapped = tappedMessageId === message._id;
+          const receipt = readReceipts[message._id];
+          const isSeen = Boolean(receipt?.seen || isTapped);
+          const seenTime = receipt?.seenAt ? formatTime(receipt.seenAt) : formatTime(message.createdAt);
 
           return (
             <div
               key={message._id || index}
-              className={`flex flex-col ${isMe ? "items-end" : "items-start"} group`}
+              className={`flex flex-col ${isMe ? "items-end" : "items-start"} group select-none`}
             >
               {/* Sender Name in Group Chats */}
               {!isMe && conversation.type === "group" && (
-                <span className="mb-1 text-xs font-semibold text-[#5a625b] ml-1">
+                <span className="mb-1 text-[11px] font-bold text-[#454e48] ml-2 flex items-center gap-1.5">
+                  <span className={`inline-block h-2 w-2 rounded-full bg-gradient-to-r ${getAvatarGradient(senderName)}`} />
                   {senderName}
                 </span>
               )}
 
               <div
-                className={`flex max-w-[80%] items-end gap-2 md:max-w-[70%] ${
+                className={`flex max-w-[85%] items-end gap-2 md:max-w-[75%] ${
                   isMe ? "flex-row-reverse" : "flex-row"
                 }`}
               >
                 {!isMe && (
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e8e4db] text-[11px] font-bold text-[#444d47]">
+                  <div
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${getAvatarGradient(
+                      senderName || message.sender,
+                    )} text-[11px] font-bold shadow-xs`}
+                  >
                     {initials(senderName || "U")}
                   </div>
                 )}
 
-                <div
-                  className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
-                    isMe
-                      ? "rounded-br-sm bg-[#1f5f51] text-white"
-                      : "rounded-bl-sm border border-black/5 bg-white text-[#1f2421]"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                <div className="flex flex-col">
                   <div
-                    className={`mt-1 flex items-center justify-end text-[10px] ${
-                      isMe ? "text-white/70" : "text-[#889087]"
+                    onClick={() => handleToggleMessageDetails(message._id)}
+                    className={`cursor-pointer rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all shadow-xs ${
+                      isMe
+                        ? "rounded-br-xs bg-gradient-to-br from-[#1d6b59] to-[#124d3f] text-white hover:brightness-105"
+                        : "rounded-bl-xs border border-black/5 bg-white text-[#1f2421] hover:border-black/15"
                     }`}
                   >
-                    <span>{formatTime(message.createdAt)}</span>
+                    <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                    <div
+                      className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] ${
+                        isMe ? "text-white/80" : "text-[#889087]"
+                      }`}
+                    >
+                      <span>{formatTime(message.createdAt)}</span>
+                      {isMe && (
+                        <span title={isSeen ? `Seen at ${seenTime}` : "Delivered"}>
+                          {isSeen ? (
+                            <CheckCheck className="h-3.5 w-3.5 text-emerald-200 stroke-[2.5]" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5 text-white/70" />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Tapped Detail Inspector (Seen / Unseen Status & Timestamp) */}
+                  {isTapped && (
+                    <div
+                      className={`mt-1 animate-in fade-in zoom-in-95 duration-150 rounded-xl px-2.5 py-1 text-[10px] font-medium shadow-2xs border ${
+                        isMe
+                          ? "bg-emerald-950/80 text-emerald-100 border-emerald-800/40 self-end"
+                          : "bg-white/95 text-[#525a54] border-black/10 self-start"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Info className="h-3 w-3 text-emerald-400 shrink-0" />
+                        {isMe ? (
+                          <span>
+                            {isSeen ? `Status: Seen • ${seenTime}` : `Status: Sent • ${formatTime(message.createdAt)}`}
+                          </span>
+                        ) : (
+                          <span>
+                            Received: {formatDateTime(message.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
+
+        {/* Real-time Typing Bubble */}
+        {activeTypers.length > 0 && (
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 ml-1 py-1">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white text-[10px] font-bold shadow-xs">
+              {initials(activeTypers[0].userName)}
+            </div>
+            <div className="flex items-center gap-2 rounded-2xl rounded-bl-xs border border-black/5 bg-white px-3.5 py-2 shadow-xs">
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68] [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68] [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2f7d68]" />
+              </div>
+              <span className="text-[11px] font-medium text-[#5c645e]">
+                {activeTypers.length === 1
+                  ? `${activeTypers[0].userName} is typing...`
+                  : `${activeTypers.length} people are typing...`}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div ref={bottomRef} className="h-px" />
       </div>
@@ -204,7 +289,7 @@ export function MessageList({ conversation }: MessageListProps) {
         <div className="absolute bottom-4 right-6 z-10">
           <button
             onClick={handleScrollToBottom}
-            className="flex items-center gap-2 rounded-full border border-black/10 bg-white/95 px-3.5 py-2 text-xs font-medium text-[#1f5f51] shadow-lg backdrop-blur hover:bg-white transition-all transform hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 rounded-full border border-black/10 bg-white/95 px-3.5 py-2 text-xs font-semibold text-[#1f5f51] shadow-lg backdrop-blur hover:bg-white transition-all transform hover:scale-105 active:scale-95"
           >
             <ArrowDown className="h-3.5 w-3.5" />
             <span>Latest messages</span>
